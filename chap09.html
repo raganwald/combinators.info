@@ -2,8 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>Kestrels, Quirky Birds, and Hopeless Egocentricity : 
-<center><iframe style="margin-bottom:20px;" width="160" height="400" src="https://leanpub.com/combinators/embed" frameborder="0" allowtransparency="true"></iframe></center>9 You can’t be serious!?</title>
+<title>Kestrels, Quirky Birds, and Hopeless Egocentricity : 9 You can’t be serious!?</title>
 <link href="stylesheet.css" type="text/css" rel="stylesheet" />
 </head>
 <body>
@@ -51,7 +50,7 @@ To where it bent in the undergrowth SEMI-COMMA!!</p>
   <strong>gives</strong>
 </p>
 
-<p><code>String#to_proc</code> provides several key abbreviations: First,	<code>-&gt;</code> syntax for lambdas in Ruby 1.8. So instead of <code>lambda { |x,y| x + y }</code>, you can write <code>'x,y -&gt; x + y'</code>. I read this out loud as &#x201C;<em>x and y gives x plus y</em>.&#x201D; </p>
+<p><code>String#to_proc</code> provides several key abbreviations: First, <code>-&gt;</code> syntax for lambdas in Ruby 1.8. So instead of <code>lambda { |x,y| x + y }</code>, you can write <code>'x,y -&gt; x + y'</code>. I read this out loud as &#x201C;<em>x and y gives x plus y</em>.&#x201D; </p>
 
 <p>This syntax gets rid of the noisy <code>lambda</code> keyword and is much closer to Ruby 1.9 syntax. And frankly, reading it out loud makes much more sense than reading lambdas aloud. Our example above could be written:</p>
 
@@ -107,7 +106,7 @@ To where it bent in the undergrowth SEMI-COMMA!!</p>
   <code class="s">'_ ** 2'</code><code class="p">,</code>
   <code class="s">'_'</code><code class="p">,</code>
   <code class="s">'_.inject { |sum, n| sum + n }'</code>
-<code class="p">)</code>	
+<code class="p">)</code>
 </pre></div>
 
 </div>
@@ -205,7 +204,7 @@ To where it bent in the undergrowth SEMI-COMMA!!</p>
   <code class="n">upper_right</code> <code class="p">=</code> <code class="n">rotate</code><code class="p">(</code><code class="n">sub_square</code><code class="p">.</code><code class="n">call</code><code class="p">(</code>0<code class="p">,</code><code class="n">half_sz</code><code class="p">))</code>
   <code class="n">lower_right</code> <code class="p">=</code> <code class="n">rotate</code><code class="p">(</code><code class="n">sub_square</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">half_sz</code><code class="p">,</code><code class="n">half_sz</code><code class="p">))</code>
   <code class="n">upper_right</code><code class="p">.</code><code class="n">zip</code><code class="p">(</code><code class="n">lower_right</code><code class="p">).</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">l</code><code class="p">,</code><code class="n">r</code><code class="o">|</code> <code class="n">l</code> <code class="o">+</code> <code class="n">r</code> <code class="p">}</code> <code class="o">+</code>
-  	<code class="n">upper_left</code><code class="p">.</code><code class="n">zip</code><code class="p">(</code><code class="n">lower_left</code><code class="p">).</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">l</code><code class="p">,</code><code class="n">r</code><code class="o">|</code> <code class="n">l</code> <code class="o">+</code> <code class="n">r</code> <code class="p">}</code>
+    <code class="n">upper_left</code><code class="p">.</code><code class="n">zip</code><code class="p">(</code><code class="n">lower_left</code><code class="p">).</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">l</code><code class="p">,</code><code class="n">r</code><code class="o">|</code> <code class="n">l</code> <code class="o">+</code> <code class="n">r</code> <code class="p">}</code>
 <code class="k">end</code>
 </pre></div>
 
@@ -220,19 +219,19 @@ To where it bent in the undergrowth SEMI-COMMA!!</p>
   <code class="p">:</code><code class="n">cond</code> <code class="p">=</code><code class="o">&gt;</code> "!<code class="p">(</code><code class="n">_</code><code class="p">.</code><code class="n">kind_of</code>?<code class="p">(</code><code class="n">Enumerable</code><code class="p">)</code> <code class="o">&amp;&amp;</code> <code class="n">_</code><code class="p">.</code><code class="nb">size</code> <code class="o">&gt;</code> 1<code class="p">)</code>"<code class="p">,</code>
   <code class="p">:</code><code class="n">then</code> <code class="p">=</code><code class="o">&gt;</code> "<code class="n">_</code>"<code class="p">,</code>
   <code class="p">:</code><code class="n">before</code> <code class="p">=</code><code class="o">&gt;</code> <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">square</code><code class="o">|</code>
-	  <code class="n">half_sz</code> <code class="p">=</code> <code class="n">square</code><code class="p">.</code><code class="nb">size</code> <code class="o">/</code> 2
-	  <code class="n">sub_square</code> <code class="p">=</code> <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">row</code><code class="p">,</code> <code class="n">col</code><code class="o">|</code>
-	    <code class="n">square</code><code class="p">.</code><code class="n">slice</code><code class="p">(</code><code class="n">row</code><code class="p">,</code> <code class="n">half_sz</code><code class="p">).</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">a_row</code><code class="o">|</code> <code class="n">a_row</code><code class="p">.</code><code class="n">slice</code><code class="p">(</code><code class="n">col</code><code class="p">,</code> <code class="n">half_sz</code><code class="p">)</code> <code class="p">}</code>
-	  <code class="k">end</code>
-	  <code class="n">upper_left</code> <code class="p">=</code> <code class="n">sub_square</code><code class="p">.</code><code class="n">call</code><code class="p">(</code>0<code class="p">,</code>0<code class="p">)</code>
-	  <code class="n">lower_left</code> <code class="p">=</code> <code class="n">sub_square</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">half_sz</code><code class="p">,</code>0<code class="p">)</code>
-	  <code class="n">upper_right</code> <code class="p">=</code> <code class="n">sub_square</code><code class="p">.</code><code class="n">call</code><code class="p">(</code>0<code class="p">,</code><code class="n">half_sz</code><code class="p">)</code>
-	  <code class="n">lower_right</code> <code class="p">=</code> <code class="n">sub_square</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">half_sz</code><code class="p">,</code><code class="n">half_sz</code><code class="p">)</code>
-	  <code class="p">[</code><code class="n">upper_left</code><code class="p">,</code> <code class="n">lower_left</code><code class="p">,</code> <code class="n">upper_right</code><code class="p">,</code> <code class="n">lower_right</code><code class="p">]</code>
+    <code class="n">half_sz</code> <code class="p">=</code> <code class="n">square</code><code class="p">.</code><code class="nb">size</code> <code class="o">/</code> 2
+    <code class="n">sub_square</code> <code class="p">=</code> <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">row</code><code class="p">,</code> <code class="n">col</code><code class="o">|</code>
+      <code class="n">square</code><code class="p">.</code><code class="n">slice</code><code class="p">(</code><code class="n">row</code><code class="p">,</code> <code class="n">half_sz</code><code class="p">).</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">a_row</code><code class="o">|</code> <code class="n">a_row</code><code class="p">.</code><code class="n">slice</code><code class="p">(</code><code class="n">col</code><code class="p">,</code> <code class="n">half_sz</code><code class="p">)</code> <code class="p">}</code>
+    <code class="k">end</code>
+    <code class="n">upper_left</code> <code class="p">=</code> <code class="n">sub_square</code><code class="p">.</code><code class="n">call</code><code class="p">(</code>0<code class="p">,</code>0<code class="p">)</code>
+    <code class="n">lower_left</code> <code class="p">=</code> <code class="n">sub_square</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">half_sz</code><code class="p">,</code>0<code class="p">)</code>
+    <code class="n">upper_right</code> <code class="p">=</code> <code class="n">sub_square</code><code class="p">.</code><code class="n">call</code><code class="p">(</code>0<code class="p">,</code><code class="n">half_sz</code><code class="p">)</code>
+    <code class="n">lower_right</code> <code class="p">=</code> <code class="n">sub_square</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">half_sz</code><code class="p">,</code><code class="n">half_sz</code><code class="p">)</code>
+    <code class="p">[</code><code class="n">upper_left</code><code class="p">,</code> <code class="n">lower_left</code><code class="p">,</code> <code class="n">upper_right</code><code class="p">,</code> <code class="n">lower_right</code><code class="p">]</code>
   <code class="k">end</code><code class="p">,</code>
   <code class="p">:</code><code class="n">after</code> <code class="p">=</code><code class="o">&gt;</code> <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">list</code><code class="o">|</code>
-	  <code class="n">upper_left</code><code class="p">,</code> <code class="n">lower_left</code><code class="p">,</code> <code class="n">upper_right</code><code class="p">,</code> <code class="n">lower_right</code> <code class="p">=</code> <code class="n">list</code>
-	  <code class="n">upper_right</code><code class="p">.</code><code class="n">zip</code><code class="p">(</code><code class="n">lower_right</code><code class="p">).</code><code class="n">map</code><code class="p">(</code><code class="o">&amp;</code><code class="s">'+'</code><code class="p">)</code> <code class="o">+</code> <code class="n">upper_left</code><code class="p">.</code><code class="n">zip</code><code class="p">(</code><code class="n">lower_left</code><code class="p">).</code><code class="n">map</code><code class="p">(</code><code class="o">\</code>
+    <code class="n">upper_left</code><code class="p">,</code> <code class="n">lower_left</code><code class="p">,</code> <code class="n">upper_right</code><code class="p">,</code> <code class="n">lower_right</code> <code class="p">=</code> <code class="n">list</code>
+    <code class="n">upper_right</code><code class="p">.</code><code class="n">zip</code><code class="p">(</code><code class="n">lower_right</code><code class="p">).</code><code class="n">map</code><code class="p">(</code><code class="o">&amp;</code><code class="s">'+'</code><code class="p">)</code> <code class="o">+</code> <code class="n">upper_left</code><code class="p">.</code><code class="n">zip</code><code class="p">(</code><code class="n">lower_left</code><code class="p">).</code><code class="n">map</code><code class="p">(</code><code class="o">\</code>
 <code class="o">&amp;</code><code class="s">'+'</code><code class="p">)</code>
   <code class="k">end</code>
 <code class="k">end</code>
