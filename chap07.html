@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>7 Mockingbirds</title>
+<link href="stylesheet.css" type="text/css" rel="stylesheet" />
+</head>
+<body>
+<div id="leanpub-main">
+<h2 section-num="7" id="mockingbirds"><span class="section-number">7 </span>Mockingbirds</h2>
+
+<p>In this chapter, we will meet a combinator that duplicates its arguments, and see how to use it to achieve recursion. Such combinators are called <em>recursive combinators</em>, and are an important foundation for separating the concrete implementation of an algorithm from its definition.</p>
+
+<h3 section-num="7.1" id="duplicative-combinators"><span class="section-number">7.1 </span>Duplicative Combinators</h3>
+
+<p>Almost all of the combinators we&#x2019;ve seen in previous essays about combinators &#x201C;conserve&#x201D; their arguments. For example, if you pass <code>xyz</code> to a <em>Bluebird</em>, you get one <code>x</code>, one <code>y</code>, and one <code>z</code> back, exactly what you passed in. You get <code>x(yz)</code> back, so they have been grouped for you. But nothing has been added and nothing has been taken away. Likewise the <em>Thrush</em> reverses its arguments, but again it answers back the same number arguments you passed to it. The Kestrel, on the other hand, does not conserve its arguments. It <em>erases</em> one. If you pass <code>xy</code> to a Kestrel, you only get <code>x</code> back. The <code>y</code> is erased. Kestrels do not conserve their arguments.</p>
+
+<p>Today we are going to meet another combinator that does not conserve its arguments, the Mockingbird. Where a Kestrel erases one of its arguments, the Mockingbird <em>duplicates</em> its argument. In logic notation, <code>Mx = xx</code>. Or in Ruby:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">mockingbird</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">x</code><code class="p">)</code>
+	#<code class="p">=</code><code class="o">&gt;</code> <code class="n">x</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">x</code><code class="p">)</code>
+</pre></div>
+
+</div>
+
+<p>The Mockingbird is not the only combinator that duplicates one or more of its arguments. Logicians have also found important uses for many other duplicating combinators like the Starling (<code>Sxyz = xz(yz)</code>), which is one half of the <a href="http://en.wikipedia.org/wiki/SKI_combinator_calculus" title="SKI combinator calculus - Wikipedia, the free encyclopedia">SK combinator calculus</a>, and the Turing Bird (<code>Uxy = y(xxy)</code>), which is named after <a href="http://www.alanturing.net/turing_archive/index.html" title="Alan Turing">its discoverer</a>.</p>
+
+<p>The great benefit of duplicative combinators from a <em>theoretical</em> perspective is that combinators that duplicate an argument can be used to introduce recursion without names, scopes, bindings, and other things that clutter things up. Being able to introduce anonymous recursion is very elegant, and <a href="http://www.eecs.harvard.edu/~cduan/technical/ruby/ycombinator.shtml" title="A Use of the Y Combinator in Ruby">there are times when it is useful in its own right</a>.</p>
+
+<h3 section-num="7.2" id="recursive-lambdas-in-ruby"><span class="section-number">7.2 </span>Recursive Lambdas in Ruby</h3>
+
+<p>Let&#x2019;s write a simple recursive combinator in Ruby from first principles. To start with, let&#x2019;s pick a recursive algorithm to implement: We&#x2019;ll <em>sum the numbers of a nested list</em>. In other words, we&#x2019;re going to traverse a tree of numbers and generate the sum of the leaves, a recursive problem.</p>
+
+<blockquote>
+  <p>This is a trivial problem in Ruby, <code>[1, [[2,3], [[[4]]]]].flatten.inject(&amp;:+)</code> will do the trick. Of course, it does so by calling <code>.flatten</code>, a built-in method that is itself recursive. However, by picking a really simple example, it&#x2019;s easy to focus on the recursion rather than by the domain-specific parts of our problem. That will make things look a little over-engineered here, but when you&#x2019;re interested in the engineering, that&#x2019;s a good thing.</p>
+</blockquote>
+
+<p>So what is our algorithm?</p>
+
+<ol><li>If we are given a number, return it.</li>
+  <li>If we are given a list, call ourself for each item of the list and sum the numbers that are returned.</li>
+</ol><p>In Ruby:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">sum_of_nested_list</code> <code class="p">=</code> <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="o">|</code>
+  <code class="n">arg</code><code class="p">.</code><code class="n">kind_of</code>?<code class="p">(</code><code class="n">Numeric</code><code class="p">)</code> ? <code class="n">arg</code> <code class="p">:</code> <code class="n">arg</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">item</code><code class="o">|</code> <code class="n">sum_of_nested_list</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">it</code><code class="o">\</code>
+<code class="n">em</code><code class="p">)</code> <code class="p">}.</code><code class="n">inject</code><code class="p">(</code><code class="o">&amp;</code><code class="p">:</code><code class="o">+</code><code class="p">)</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>One reason we don&#x2019;t like this is that it breaks badly if we ever modify the variable <code>sum_of_nested_list</code>. Although you may think that&#x2019;s unlikely, it can happen when writing the method combinators you&#x2019;ve seen in previous chapters. For example, imagine you wanted to write to the log when calling this function, but only once, you don&#x2019;t want to write to the log when it calls itself.</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">old_sum</code> <code class="p">=</code> <code class="n">sum_of_nested_list</code>
+<code class="n">sum_of_nested_list</code> <code class="p">=</code> <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="o">|</code>
+  <code class="n">puts</code> "<code class="n">sum_of_nested_list</code><code class="p">(</code>#<code class="p">{</code><code class="n">arg</code><code class="p">.</code><code class="n">inspect</code><code class="p">})</code>"
+  <code class="n">old_sum</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">arg</code><code class="p">)</code>
+<code class="k">end</code>
+  
+<code class="n">sum_of_nested_list</code><code class="p">.</code><code class="n">call</code><code class="p">([[[[[</code>6<code class="p">]]]]])</code>
+  
+  <code class="n">sum_of_nested_list</code><code class="p">([[[[[</code>6<code class="p">]]]]])</code>
+  <code class="n">sum_of_nested_list</code><code class="p">([[[[</code>6<code class="p">]]]])</code>
+  <code class="n">sum_of_nested_list</code><code class="p">([[[</code>6<code class="p">]]])</code>
+  <code class="n">sum_of_nested_list</code><code class="p">([[</code>6<code class="p">]])</code>
+  <code class="n">sum_of_nested_list</code><code class="p">([</code>6<code class="p">])</code>
+  <code class="n">sum_of_nested_list</code><code class="p">(</code>6<code class="p">)</code>
+    #<code class="p">=</code><code class="o">&gt;</code> 6 
+</pre></div>
+
+</div>
+
+<p>This doesn&#x2019;t work because inside our original <code>sum_of_nested_list</code>, we call <code>sum_of_nested_list</code> by name. If that gets redefined by a method combinator or anything else, we&#x2019;re calling the new thing and not the old one.</p>
+
+<p>Another reason to eschew having lambdas call themselves by name is that we won&#x2019;t be able to create anonymous recursive lambdas. Although naming things is an important part of writing readable software, being able to make anonymous things like object literals opens up a world where everything is truly first class and can be created on the fly or passed around like parameters. So by figuring out how to have lambdas call themselves without using their names, we&#x2019;re figuring out how to make all kinds of lambdas anonymous and flexible, not just the non-recursive ones.</p>
+
+<h3 section-num="7.3" id="recursive-combinatorics"><span class="section-number">7.3 </span>Recursive Combinatorics</h3>
+
+<p>The combinator way around this is to find a way to pass a function to itself as a parameter. If a lambda only ever calls its own parameters, it doesn&#x2019;t depend on anything being bound to a name in its environment. Let&#x2019;s start by rewriting our function to take itself as an argument:</p>
+
+  	sum_of_nested_list = lambda do |myself, arg|
+<div class="code-block">
+<div class="highlight"><pre>  <code class="n">arg</code><code class="p">.</code><code class="n">kind_of</code>?<code class="p">(</code><code class="n">Numeric</code><code class="p">)</code> ? <code class="n">arg</code> <code class="p">:</code> <code class="n">arg</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">item</code><code class="o">|</code> <code class="n">myself</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">myself</code><code class="p">,</code> <code class="n">item</code><code class="p">)</code> <code class="o">\</code>
+<code class="p">}.</code><code class="n">inject</code><code class="p">(</code><code class="o">&amp;</code><code class="p">:</code><code class="o">+</code><code class="p">)</code>
+</pre></div>
+
+</div>
+  	end
+
+<p>One little problem: How are we going to pass our function to itself? Let&#x2019;s start by <em>currying</em> it into a function that takes one argument, itself, and returns a function that takes an item:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">sum_of_nested_list</code> <code class="p">=</code> <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">myself</code><code class="o">|</code>
+  <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="o">|</code>
+    <code class="n">arg</code><code class="p">.</code><code class="n">kind_of</code>?<code class="p">(</code><code class="n">Numeric</code><code class="p">)</code> ? <code class="n">arg</code> <code class="p">:</code> <code class="n">arg</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">item</code><code class="o">|</code> <code class="n">myself</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">myself</code><code class="p">).</code><code class="n">call</code><code class="o">\</code>
+<code class="p">(</code><code class="n">item</code><code class="p">)</code> <code class="p">}.</code><code class="n">inject</code><code class="p">(</code><code class="o">&amp;</code><code class="p">:</code><code class="o">+</code><code class="p">)</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>Notice that we now have <code>myself</code> call itself and have the result call an item. To use it, we have to have it call itself:</p>
+
+  	sum_of_nested_list.call(sum_of_nested_list).call([1, [[2,3], [[[4]]]]])
+   		#=&gt; 10 
+
+<p>This works, but is annoying. Writing our function to take itself as an argument and return a function is one thing, we can fix that, but having our function call itself by name defeats the very purpose of the exercise. Let&#x2019;s fix it. First thing we&#x2019;ll do, let&#x2019;s get rid of <code>myself.call(myself).call(item)</code>. We&#x2019;ll use a new parameter, <code>recurse</code> (it&#x2019;s the <em>last</em> parameter in an homage to callback-oriented programming style). We&#x2019;ll pass it <code>myself.call(myself)</code>, thus removing <code>myself.call(myself)</code> from our inner lambda:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">sum_of_nested_list</code> <code class="p">=</code> <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">myself</code><code class="o">|</code>
+  <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="o">|</code>
+    <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="p">,</code> <code class="n">recurse</code><code class="o">|</code>
+      <code class="n">arg</code><code class="p">.</code><code class="n">kind_of</code>?<code class="p">(</code><code class="n">Numeric</code><code class="p">)</code> ? <code class="n">arg</code> <code class="p">:</code> <code class="n">arg</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">item</code><code class="o">|</code> <code class="n">recurse</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">item</code><code class="p">)</code> <code class="p">}.</code><code class="nb">i</code><code class="o">\</code>
+<code class="n">nject</code><code class="p">(</code><code class="o">&amp;</code><code class="p">:</code><code class="o">+</code><code class="p">)</code>
+    <code class="k">end</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">arg</code><code class="p">,</code> <code class="n">myself</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">myself</code><code class="p">))</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+
+<code class="n">sum_of_nested_list</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">sum_of_nested_list</code><code class="p">).</code><code class="n">call</code><code class="p">([</code>1<code class="p">,</code> <code class="p">[[</code>2<code class="p">,</code>3<code class="p">],</code> <code class="p">[[[</code>4<code class="p">]]]]])</code>
+</pre></div>
+
+</div>
+ 		  #=&gt; 10 
+
+<p>Next, we hoist our code out of the middle and make it a parameter. This allows us to get rid of the ` sum_of_nested_list.call(sum_of_nested_list)` by moving it into our lambda:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">sum_of_nested_list</code> <code class="p">=</code> <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">fn</code><code class="o">|</code>
+  <code class="n">lambda</code> <code class="p">{</code> <code class="o">|</code><code class="n">x</code><code class="o">|</code> <code class="n">x</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">x</code><code class="p">)</code> <code class="p">}.</code><code class="n">call</code><code class="p">(</code>
+    <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">myself</code><code class="o">|</code>
+      <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="o">|</code>
+        <code class="n">fn</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">arg</code><code class="p">,</code> <code class="n">myself</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">myself</code><code class="p">))</code>
+      <code class="k">end</code>
+    <code class="k">end</code>
+  <code class="p">)</code>
+<code class="k">end</code><code class="p">.</code><code class="n">call</code><code class="p">(</code>
+  <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="p">,</code> <code class="n">recurse</code><code class="o">|</code>
+    <code class="n">arg</code><code class="p">.</code><code class="n">kind_of</code>?<code class="p">(</code><code class="n">Numeric</code><code class="p">)</code> ? <code class="n">arg</code> <code class="p">:</code> <code class="n">arg</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">item</code><code class="o">|</code> <code class="n">recurse</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">item</code><code class="p">)</code> <code class="p">}.</code><code class="n">inj</code><code class="o">\</code>
+<code class="n">ect</code><code class="p">(</code><code class="o">&amp;</code><code class="p">:</code><code class="o">+</code><code class="p">)</code>
+  <code class="k">end</code>
+<code class="p">)</code>
+
+<code class="n">sum_of_nested_list</code><code class="p">.</code><code class="n">call</code><code class="p">([</code>1<code class="p">,</code> <code class="p">[[</code>2<code class="p">,</code>3<code class="p">],</code> <code class="p">[[[</code>4<code class="p">]]]]])</code>
+</pre></div>
+
+</div>
+ 		  #=&gt; 10 
+
+<p>Lots of code there, but let&#x2019;s check and see that it works as an anonymous lambda:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">fn</code><code class="o">|</code>
+  <code class="n">lambda</code> <code class="p">{</code> <code class="o">|</code><code class="n">x</code><code class="o">|</code> <code class="n">x</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">x</code><code class="p">)</code> <code class="p">}.</code><code class="n">call</code><code class="p">(</code>
+    <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">myself</code><code class="o">|</code>
+      <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="o">|</code>
+        <code class="n">fn</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">arg</code><code class="p">,</code> <code class="n">myself</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">myself</code><code class="p">))</code>
+      <code class="k">end</code>
+    <code class="k">end</code>
+  <code class="p">)</code>
+<code class="k">end</code><code class="p">.</code><code class="n">call</code><code class="p">(</code>
+  <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="p">,</code> <code class="n">recurse</code><code class="o">|</code>
+    <code class="n">arg</code><code class="p">.</code><code class="n">kind_of</code>?<code class="p">(</code><code class="n">Numeric</code><code class="p">)</code> ? <code class="n">arg</code> <code class="p">:</code> <code class="n">arg</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">item</code><code class="o">|</code> <code class="n">recurse</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">item</code><code class="p">)</code> <code class="p">}.</code><code class="n">inj</code><code class="o">\</code>
+<code class="n">ect</code><code class="p">(</code><code class="o">&amp;</code><code class="p">:</code><code class="o">+</code><code class="p">)</code>
+  <code class="k">end</code>
+<code class="p">).</code><code class="n">call</code><code class="p">([</code>1<code class="p">,</code> <code class="p">[[</code>2<code class="p">,</code>3<code class="p">],</code> <code class="p">[[[</code>4<code class="p">]]]]])</code>
+</pre></div>
+
+</div>
+ 		  #=&gt; 10
+
+<p>Looking at this final example, we can see it has two cleanly separated parts:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="c"># The recursive combinator</code>
+
+<code class="n">lambda</code> <code class="k">do</code> <code class="o">|</code><code class="n">fn</code><code class="o">|</code>
+  <code class="n">lambda</code> <code class="p">{</code> <code class="o">|</code><code class="n">x</code><code class="o">|</code> <code class="n">x</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">x</code><code class="p">)</code> <code class="p">}.</code><code class="n">call</code><code class="p">(</code>
+    <code class="n">lambda</code> <code class="k">do</code> <code class="o">|</code><code class="n">myself</code><code class="o">|</code>
+      <code class="n">lambda</code> <code class="k">do</code> <code class="o">|</code><code class="nb">arg</code><code class="o">|</code>
+        <code class="n">fn</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="nb">arg</code><code class="p">,</code> <code class="n">myself</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">myself</code><code class="p">))</code>
+      <code class="k">end</code>
+    <code class="k">end</code>
+  <code class="p">)</code>
+<code class="k">end</code><code class="p">.</code><code class="n">call</code><code class="p">(</code>
+  
+  <code class="c"># The lambda we wish to make recursive</code>
+  
+  <code class="n">lambda</code> <code class="k">do</code> <code class="o">|</code><code class="nb">arg</code><code class="p">,</code> <code class="n">recurse</code><code class="o">|</code>
+    <code class="nb">arg</code><code class="p">.</code><code class="n">kind_of</code>?<code class="p">(</code><code class="n">Numeric</code><code class="p">)</code> ? <code class="nb">arg</code> <code class="p">:</code> <code class="nb">arg</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">item</code><code class="o">|</code> <code class="n">recurse</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">item</code><code class="p">)</code> <code class="p">}.</code><code class="n">inj</code><code class="o">\</code>
+<code class="n">ect</code><code class="p">(</code><code class="o">&amp;</code><code class="p">:</code><code class="o">+</code><code class="p">)</code>
+  <code class="k">end</code>
+  
+<code class="p">)</code>
+</pre></div>
+
+</div>
+
+<h3 section-num="7.4" id="recursive-combinators-in-idiomatic-ruby"><span class="section-number">7.4 </span>Recursive Combinators in Idiomatic Ruby</h3>
+
+<p>We&#x2019;ve now managed to separate the mechanism of recursing (the combinator) from what we want to do while recursing. Let&#x2019;s formalize this and make it idiomatic Ruby. We&#x2019;ll make it a method for creating recursive lambdas and call it with a block instead of a lambda:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">def</code> <code class="n">lambda_with_recursive_callback</code>
+  <code class="n">lambda</code> <code class="p">{</code> <code class="o">|</code><code class="n">x</code><code class="o">|</code> <code class="n">x</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">x</code><code class="p">)</code> <code class="p">}.</code><code class="n">call</code><code class="p">(</code>
+    <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">myself</code><code class="o">|</code>
+      <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="o">|</code>
+        <code class="n">yield</code><code class="p">(</code><code class="n">arg</code><code class="p">,</code> <code class="n">myself</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">myself</code><code class="p">))</code>
+      <code class="k">end</code>
+    <code class="k">end</code>
+  <code class="p">)</code>
+<code class="k">end</code>
+
+<code class="n">sum_of_nested_list</code> <code class="p">=</code> <code class="n">lambda_with_recursive_callback</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="p">,</code> <code class="n">recurse</code><code class="o">|</code>
+  <code class="n">arg</code><code class="p">.</code><code class="n">kind_of</code>?<code class="p">(</code><code class="n">Numeric</code><code class="p">)</code> ? <code class="n">arg</code> <code class="p">:</code> <code class="n">arg</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">item</code><code class="o">|</code> <code class="n">recurse</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">item</code><code class="p">)</code> <code class="p">}.</code><code class="n">injec</code><code class="o">\</code>
+<code class="n">t</code><code class="p">(</code><code class="o">&amp;</code><code class="p">:</code><code class="o">+</code><code class="p">)</code>
+<code class="k">end</code>
+
+<code class="n">sum_of_nested_list</code><code class="p">.</code><code class="n">call</code><code class="p">([</code>1<code class="p">,</code> <code class="p">[[</code>2<code class="p">,</code>3<code class="p">],</code> <code class="p">[[[</code>4<code class="p">]]]]])</code>
+</pre></div>
+
+</div>
+ 		  #=&gt; 10 
+
+<p>Not bad. But hey, let&#x2019;s DRY things up. Aren&#x2019;t <code>x.call(x)</code> and <code>myself.call(myself)</code> the same thing?</p>
+
+<h3 section-num="7.5" id="the-mockingbird"><span class="section-number">7.5 </span>The Mockingbird</h3>
+
+<p>Yes, <code>x.call(x)</code> and <code>myself.call(myself)</code> <em>are</em> the same thing:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">def</code> <code class="n">mockingbird</code> <code class="o">&amp;</code><code class="n">x</code>
+  <code class="n">x</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">x</code><code class="p">)</code>
+<code class="k">end</code>
+
+<code class="n">def</code> <code class="n">lambda_with_recursive_callback</code>
+  <code class="n">mockingbird</code> <code class="n">do</code> <code class="o">|</code><code class="n">myself</code><code class="o">|</code>
+    <code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="o">|</code>
+      <code class="n">yield</code><code class="p">(</code><code class="n">arg</code><code class="p">,</code> <code class="n">mockingbird</code><code class="p">(</code><code class="o">&amp;</code><code class="n">myself</code><code class="p">))</code>
+    <code class="k">end</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+
+<code class="n">sum_of_nested_list</code> <code class="p">=</code> <code class="n">lambda_with_recursive_callback</code> <code class="n">do</code> <code class="o">|</code><code class="n">arg</code><code class="p">,</code> <code class="n">recurse</code><code class="o">|</code>
+  <code class="n">arg</code><code class="p">.</code><code class="n">kind_of</code>?<code class="p">(</code><code class="n">Numeric</code><code class="p">)</code> ? <code class="n">arg</code> <code class="p">:</code> <code class="n">arg</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">item</code><code class="o">|</code> <code class="n">recurse</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">item</code><code class="p">)</code> <code class="p">}.</code><code class="n">injec</code><code class="o">\</code>
+<code class="n">t</code><code class="p">(</code><code class="o">&amp;</code><code class="p">:</code><code class="o">+</code><code class="p">)</code>
+<code class="k">end</code>
+
+<code class="n">sum_of_nested_list</code><code class="p">.</code><code class="n">call</code><code class="p">([</code>1<code class="p">,</code> <code class="p">[[</code>2<code class="p">,</code>3<code class="p">],</code> <code class="p">[[[</code>4<code class="p">]]]]])</code>
+</pre></div>
+
+</div>
+ 		  #=&gt; 10 
+
+<p>But does it blend?</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">lambda_with_recursive_callback</code> <code class="p">{</code> <code class="o">|</code><code class="n">arg</code><code class="p">,</code> <code class="n">recurse</code><code class="o">|</code> 
+  <code class="n">arg</code><code class="p">.</code><code class="n">kind_of</code>?<code class="p">(</code><code class="n">Numeric</code><code class="p">)</code> ? <code class="n">arg</code> <code class="p">:</code> <code class="n">arg</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">item</code><code class="o">|</code> <code class="n">recurse</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">item</code><code class="p">)</code> <code class="p">}.</code><code class="n">injec</code><code class="o">\</code>
+<code class="n">t</code><code class="p">(</code><code class="o">&amp;</code><code class="p">:</code><code class="o">+</code><code class="p">)</code>
+<code class="p">}.</code><code class="n">call</code><code class="p">([</code>1<code class="p">,</code> <code class="p">[[</code>2<code class="p">,</code>3<code class="p">],</code> <code class="p">[[[</code>4<code class="p">]]]]])</code>
+</pre></div>
+
+</div>
+ 		  #=&gt; 10 
+
+<p>Yes!</p>
+
+<p>And now we have our finished recursive combinator. We are able to create recursive lambdas in Ruby without relying on environment variables, just on parameters passed to blocks or lambdas. Our recursive combinator is built on the simplest and most basic of duplicating combinators, the Mockingbird.</p>
+
+<p>In the next chapter, we&#x2019;ll build more sophisticated (and practical) recursive combinators. And while doing so, we&#x2019;ll take an aggressive approach to separating interfaces from implementations in algorithms.</p>
+</div>
+<div id="leanpub-toc">
+<h2>Table of Contents</h2>
+<ol class="toc">
+<li class="section"><a href="chap00.html#the-mit-license"><span class="section-number">0.1 </span>The MIT License</a></li>
+<li class="section"><a href="chap00.html#preface"><span class="section-number">0.2 </span>Preface</a></li>
+<li class="chapter"><a href="chap01.html#introduction"><span class="section-number">1 </span>Introduction</a></li>
+<li class="chapter"><a href="chap02.html#kestrels"><span class="section-number">2 </span>Kestrels</a></li>
+<li class="section"><a href="chap02.html#object-initializer-blocks"><span class="section-number">2.1 </span>Object initializer blocks</a></li>
+<li class="section"><a href="chap02.html#inside-an-idiomatic-ruby-kestrel"><span class="section-number">2.2 </span>Inside, an idiomatic Ruby Kestrel</a></li>
+<li class="section"><a href="chap02.html#the-enchaining-kestrel"><span class="section-number">2.3 </span>The Enchaining Kestrel</a></li>
+<li class="section"><a href="chap02.html#the-obdurate-kestrel"><span class="section-number">2.4 </span>The Obdurate Kestrel</a></li>
+<li class="section"><a href="chap02.html#kestrels-on-rails"><span class="section-number">2.5 </span>Kestrels on Rails</a></li>
+<li class="section"><a href="chap02.html#rewriting-returning-in-rails"><span class="section-number">2.6 </span>Rewriting &#x201C;Returning&#x201D; in Rails</a></li>
+<li class="chapter"><a href="chap03.html#the-thrush"><span class="section-number">3 </span>The Thrush</a></li>
+<li class="section"><a href="chap03.html#let"><span class="section-number">3.1 </span>Let</a></li>
+<li class="chapter"><a href="chap04.html#songs-of-the-cardinal"><span class="section-number">4 </span>Songs of the Cardinal</a></li>
+<li class="section"><a href="chap04.html#building-a-cardinal-in-ruby"><span class="section-number">4.1 </span>Building a Cardinal in Ruby</a></li>
+<li class="chapter"><a href="chap05.html#quirky-birds-and-meta-syntactic-programming"><span class="section-number">5 </span>Quirky Birds and Meta-Syntactic Programming</a></li>
+<li class="section"><a href="chap05.html#a-limited-interpretation-of-the-quirky-bird-in-ruby"><span class="section-number">5.1 </span>A limited interpretation of the Quirky Bird in Ruby</a></li>
+<li class="section"><a href="chap05.html#embracing-the-quirky-bird"><span class="section-number">5.2 </span>Embracing the Quirky Bird</a></li>
+<li class="section"><a href="chap05.html#andand-even-more"><span class="section-number">5.3 </span>Andand even more</a></li>
+<li class="chapter"><a href="chap06.html#aspect-oriented-programming-in-ruby-using-combinator-birds"><span class="section-number">6 </span>Aspect-Oriented Programming in Ruby using Combinator Birds</a></li>
+<li class="section"><a href="chap06.html#giving-methods-advice"><span class="section-number">6.1 </span>Giving methods advice</a></li>
+<li class="section"><a href="chap06.html#the-super-keyword-perhaps-youve-heard-of-it"><span class="section-number">6.2 </span>The super keyword, perhaps you&#x2019;ve heard of it?</a></li>
+<li class="section"><a href="chap06.html#the-queer-bird"><span class="section-number">6.3 </span>The Queer Bird</a></li>
+<li class="chapter"><a href="chap07.html#mockingbirds"><span class="section-number">7 </span>Mockingbirds</a></li>
+<li class="section"><a href="chap07.html#duplicative-combinators"><span class="section-number">7.1 </span>Duplicative Combinators</a></li>
+<li class="section"><a href="chap07.html#recursive-lambdas-in-ruby"><span class="section-number">7.2 </span>Recursive Lambdas in Ruby</a></li>
+<li class="section"><a href="chap07.html#recursive-combinatorics"><span class="section-number">7.3 </span>Recursive Combinatorics</a></li>
+<li class="section"><a href="chap07.html#recursive-combinators-in-idiomatic-ruby"><span class="section-number">7.4 </span>Recursive Combinators in Idiomatic Ruby</a></li>
+<li class="section"><a href="chap07.html#the-mockingbird"><span class="section-number">7.5 </span>The Mockingbird</a></li>
+<li class="chapter"><a href="chap08.html#refactoring-methods-with-recursive-combinators"><span class="section-number">8 </span>Refactoring Methods with Recursive Combinators</a></li>
+<li class="section"><a href="chap08.html#divide-and-conquer"><span class="section-number">8.1 </span>Divide and Conquer</a></li>
+<li class="section"><a href="chap08.html#the-merge-sort"><span class="section-number">8.2 </span>The Merge Sort</a></li>
+<li class="section"><a href="chap08.html#separating-declaration-from-implementation"><span class="section-number">8.3 </span>Separating Declaration from Implementation</a></li>
+<li class="section"><a href="chap08.html#practical-recursive-combinators"><span class="section-number">8.4 </span>Practical Recursive Combinators</a></li>
+<li class="section"><a href="chap08.html#spicing-things-up"><span class="section-number">8.5 </span>Spicing things up</a></li>
+<li class="section"><a href="chap08.html#building-on-a-legacy"><span class="section-number">8.6 </span>Building on a legacy</a></li>
+<li class="section"><a href="chap08.html#seriously"><span class="section-number">8.7 </span>Seriously</a></li>
+<li class="section"><a href="chap08.html#separating-implementation-from-declaration"><span class="section-number">8.8 </span>Separating Implementation from Declaration</a></li>
+<li class="section"><a href="chap08.html#a-really-simple-recursive-combinator"><span class="section-number">8.9 </span>A Really Simple Recursive Combinator</a></li>
+<li class="chapter"><a href="chap09.html#you-cant-be-serious"><span class="section-number">9 </span>You can&#x2019;t be serious!?</a></li>
+<li class="section"><a href="chap09.html#string-to-proc"><span class="section-number">9.1 </span>String to Proc</a></li>
+<li class="section"><a href="chap09.html#the-message"><span class="section-number">9.2 </span>The Message</a></li>
+<li class="chapter"><a href="chap10.html#the-hopelessly-egocentric-book-chapter"><span class="section-number">10 </span>The Hopelessly Egocentric Book Chapter</a></li>
+<li class="section"><a href="chap10.html#object-oriented-egocentricity"><span class="section-number">10.1 </span>Object-oriented egocentricity</a></li>
+<li class="chapter"><a href="chap11.html#bonus-chapter-separating-concerns-in-coffeescript-using-aspect-oriented-programming"><span class="section-number">11 </span>Bonus Chapter: Separating Concerns in Coffeescript using Aspect-Oriented Programming</a></li>
+<li class="chapter"><a href="chap12.html#appendix-finding-joy-in-combinators"><span class="section-number">12 </span>Appendix: Finding Joy in Combinators</a></li>
+<li class="section"><a href="chap12.html#languages-for-combinatorial-logic"><span class="section-number">12.1 </span>Languages for combinatorial logic</a></li>
+<li class="section"><a href="chap12.html#concatenative-languages"><span class="section-number">12.2 </span>Concatenative languages</a></li>
+<li class="chapter"><a href="chap13.html#appendix-source-code"><span class="section-number">13 </span>Appendix: Source Code</a></li>
+<li class="section"><a href="chap13.html#kestrels-1"><span class="section-number">13.1 </span>kestrels</a></li>
+<li class="section"><a href="chap13.html#thrushes"><span class="section-number">13.2 </span>thrushes</a></li>
+<li class="section"><a href="chap13.html#the-cardinal"><span class="section-number">13.3 </span>the cardinal</a></li>
+<li class="section"><a href="chap13.html#quirky-birds"><span class="section-number">13.4 </span>quirky birds</a></li>
+<li class="section"><a href="chap13.html#bluebirds"><span class="section-number">13.5 </span>bluebirds</a></li>
+<li class="chapter"><a href="chap14.html#about-the-author"><span class="section-number">14 </span>About The Author</a></li>
+<li class="section"><a href="chap14.html#contact"><span class="section-number">14.1 </span>contact</a></li>
+</ol>
+</div>
+</body>
+</html>

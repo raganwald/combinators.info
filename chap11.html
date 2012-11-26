@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>11 Bonus Chapter: Separating Concerns in Coffeescript using Aspect-Oriented Programming</title>
+<link href="stylesheet.css" type="text/css" rel="stylesheet" />
+</head>
+<body>
+<div id="leanpub-main">
+<h2 section-num="11" id="bonus-chapter-separating-concerns-in-coffeescript-using-aspect-oriented-programming"><span class="section-number">11 </span>Bonus Chapter: Separating Concerns in Coffeescript using Aspect-Oriented Programming</h2>
+
+<p>
+  <em>This chapter isn&#x2019;t strictly about combinatory logic and it especially isn&#x2019;t about Ruby programming. However, once you grasp the underlying fundamental principles, you can apply them in other environments using other programming languages.</em>
+</p>
+
+<p>
+  <em>You shouldn&#x2019;t find it too difficult to relate the content to previous chapters, the title alone provides a massive hint.</em>
+</p>
+
+<p>Modern object-oriented software design <a href="https://en.wikipedia.org/wiki/Composition_over_inheritance">favours composition over inheritance</a> and celebrates code that is <a href="http://en.wikipedia.org/wiki/Don't_repeat_yourself">DRY</a>. The idea is to separate each object&#x2019;s concerns and responsibility into separate units of code, each of which have a single responsibility. When two different types of objects share the same functionality, they do not repeat their implementation, instead they share their implementation.</p>
+
+<p>When composing functionality at the method level of granularity, techniques such as mixins and delegation are effective design tools. But at a finer level of granularity, we sometimes wish to share functionality within methods. In a traditional design, we have to extract the shared functionality into a separate method that is called by other methods.</p>
+
+<p>
+  <strong>decomposing methods</strong>
+</p>
+
+<p>You might think of extracting smaller methods from bigger methods as <em>decomposing</em> methods. You break them into smaller pieces, and thus you can share functionality or rearrange the pieces so that your code is organized by responsibility.</p>
+
+<p>For example, let&#x2019;s say that we are writing a game for the nostalgia market, and we wish to use partially constructed objects to save resources. When we go to actually use the object, we <em>hydrate</em> it, loading the complete object from persistent storage. This is a coarse kind of <em>lazy evaluation</em>.</p>
+
+<p>Here&#x2019;s some bogus code:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">class</code> <code class="n">Wumpus</code>
+	<code class="n">roar</code><code class="p">:</code> <code class="o">-&gt;</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">hydrates</code> <code class="n">a</code> <code class="n">Wumpus</code>
+		# <code class="p">...</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">roars</code>
+		# <code class="p">...</code>
+	<code class="n">run</code><code class="p">:</code> <code class="o">-&gt;</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">hydrates</code> <code class="n">a</code> <code class="n">Wumpus</code>
+		# <code class="p">...</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">runs</code>
+		# <code class="p">...</code>
+		
+<code class="n">class</code> <code class="n">Hunter</code>
+	<code class="n">draw</code><code class="p">:</code> <code class="p">(</code><code class="n">bow</code><code class="p">)</code> <code class="o">-&gt;</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">hydrates</code> <code class="n">a</code> <code class="n">Hunter</code>
+		# <code class="p">...</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">draws</code> <code class="n">a</code> <code class="n">bow</code>
+		# <code class="p">...</code>
+	<code class="n">run</code><code class="p">:</code> <code class="o">-&gt;</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">hydrates</code> <code class="n">a</code> <code class="n">Hunter</code>
+		# <code class="p">...</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">runs</code>
+		# <code class="p">...</code>
+</pre></div>
+
+</div>
+
+<p>We can decompose it into this:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">class</code> <code class="n">Wumpus</code>
+	<code class="n">roar</code><code class="p">:</code> <code class="o">-&gt;</code>
+		<code class="n">hydrate</code><code class="p">(</code><code class="n">this</code><code class="p">)</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">roars</code>
+		# <code class="p">...</code>
+	<code class="n">run</code><code class="p">:</code> <code class="o">-&gt;</code>
+		<code class="n">hydrate</code><code class="p">(</code><code class="n">this</code><code class="p">)</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">runs</code>
+		# <code class="p">...</code>
+		
+<code class="n">class</code> <code class="n">Hunter</code>
+	<code class="n">draw</code><code class="p">:</code> <code class="p">(</code><code class="n">bow</code><code class="p">)</code> <code class="o">-&gt;</code>
+		<code class="n">hydrate</code><code class="p">(</code><code class="n">this</code><code class="p">)</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">draws</code> <code class="n">a</code> <code class="n">bow</code>
+		# <code class="p">...</code>
+	<code class="n">run</code><code class="p">:</code> <code class="o">-&gt;</code>
+		<code class="n">hydrate</code><code class="p">(</code><code class="n">this</code><code class="p">)</code>
+		# <code class="n">code</code> <code class="n">that</code> <code class="n">runs</code>
+		# <code class="p">...</code>
+	
+<code class="n">hydrate</code> <code class="p">=</code> <code class="p">(</code><code class="n">object</code><code class="p">)</code> <code class="o">-&gt;</code>
+	# <code class="n">code</code> <code class="n">that</code> <code class="n">hydrates</code> <code class="n">the</code> <code class="n">object</code> <code class="n">from</code> <code class="n">storage</code>
+</pre></div>
+
+</div>
+
+<p>
+  <strong>composing methods</strong>
+</p>
+
+<p>On an ad hoc basis, decomposing methods is fine. But there is a subtle problem. Implementation tricks like hydrating objects, memoizing return values, or other performance tweaks are orthogonal to the mechanics of what methods like <code>roar</code> or <code>run</code> are supposed to do. So why is <code>hydrate(this)</code> in every method?</p>
+
+<p>Now the obvious answer is, &#x201C;Ok, it might be orthogonal to the main business of each method, but it&#x2019;s just one line.&#x201D; The trouble with this answer is that method decomposition doesn&#x2019;t scale. We need a line for hydration, a line or two for logging, a few lines for error handling, another for wrapping certain things in a transaction&#x2026;</p>
+
+<p>Even when each orthogonal concern is boiled down to just one line, you can end up having the orthogonal concerns take up more space than the main business. And that makes the code hard to read in practice. You don&#x2019;t believe me? take a look at just about every programming tutorial ever written. They almost always say &#x201C;Hand waving over error handling and this and that&#x201D; in their code examples, because they want to make the main business of the code clearer and easier to read.</p>
+
+<p>We ought to do the same thing, move hydration, error handling, logging, transactions, and anything else orthogonal to the main business of a method out of the method. And we can.</p>
+
+<p>
+  <strong>method combinations</strong>
+</p>
+
+<p>Here&#x2019;s our code again, this time using the  <a href="https://github.com/raganwald/YouAreDaChef">YouAreDaChef</a> library to provide <em>before combinations</em>:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">YouAreDaChef</code> <code class="p">=</code> <code class="n">require</code><code class="p">(</code><code class="s">'YouAreDaChef.coffee'</code><code class="p">).</code><code class="n">YouAreDaChef</code>
+
+<code class="n">class</code> <code class="n">Wumpus</code>
+	<code class="n">roar</code><code class="p">:</code> <code class="o">-&gt;</code>
+		# <code class="p">...</code>
+	<code class="n">run</code><code class="p">:</code> <code class="o">-&gt;</code>
+		#<code class="p">...</code>
+		
+<code class="n">class</code> <code class="n">Hunter</code>
+	<code class="n">draw</code><code class="p">:</code> <code class="p">(</code><code class="n">bow</code><code class="p">)</code> <code class="o">-&gt;</code>
+		# <code class="p">...</code>
+	<code class="n">run</code><code class="p">:</code> <code class="o">-&gt;</code>
+		#<code class="p">...</code>
+		
+<code class="n">hydrate</code> <code class="p">=</code> <code class="p">(</code><code class="n">object</code><code class="p">)</code> <code class="o">-&gt;</code>
+	# <code class="n">code</code> <code class="n">that</code> <code class="n">hydrates</code> <code class="n">the</code> <code class="n">object</code> <code class="n">from</code> <code class="n">storage</code>
+	
+<code class="n">YouAreDaChef</code><code class="p">(</code><code class="n">Wumpus</code><code class="p">,</code> <code class="n">Hunter</code><code class="p">)</code>
+	<code class="p">.</code><code class="n">before</code> <code class="s">'roar'</code><code class="p">,</code> <code class="s">'draw'</code><code class="p">,</code> <code class="s">'run'</code><code class="p">,</code> <code class="p">()</code> <code class="o">-&gt;</code>
+		<code class="n">hydrate</code><code class="p">(</code><code class="n">this</code><code class="p">)</code>
+</pre></div>
+
+</div>
+
+<p>Whenever the <code>roar</code>, <code>draw</code>, or <code>run</code> methods are called, YouAreDaChef calls <code>hydrate(this)</code> first.  And  the two concerns&#x2013;How a Wumpus works and when it ought to be hydrated&#x2013;are totally separated. This isn&#x2019;t a new idea, it&#x2019;s called <a href="http://en.wikipedia.org/wiki/Aspect-oriented_programming">aspect-oriented programming</a>, and practitioners will describe what we&#x2019;re doing in terms of method advice and point cuts.</p>
+
+<p>Ruby on Rails programmers are familiar with this idea. If you have ever written any of the following, you were using Rails&#x2019; built-in aspect-oriented programming support:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">after_save</code>
+<code class="n">validates_each</code>
+<code class="n">alias_method_chain</code>
+<code class="n">before_filter</code>
+</pre></div>
+
+</div>
+
+<p>These and other features of Rails implement method advice, albeit in a very specific way tuned to portions of the Rails framework. </p>
+
+<p>
+  <strong>the unwritten rule</strong>
+</p>
+
+<blockquote>
+  <p>There is an unwritten rule that says every Ruby programmer must, at some point, write his or her own AOP implementation &#x2013;Avdi Grimm</p>
+</blockquote>
+
+<p>Let&#x2019;s look at how YouAreTheChef works. Here&#x2019;s a simplified version of the code for the <code>before</code> combination:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">YouAreDaChef</code><code class="p">:</code> <code class="p">(</code><code class="n">clazzes</code><code class="p">...)</code> <code class="o">-&gt;</code>
+    <code class="n">before</code><code class="p">:</code> <code class="p">(</code><code class="n">method_names</code><code class="p">...,</code> <code class="n">advice</code><code class="p">)</code> <code class="o">-&gt;</code>
+      <code class="n">_</code><code class="p">.</code><code class="n">each</code> <code class="n">method_names</code><code class="p">,</code> <code class="p">(</code><code class="n">name</code><code class="p">)</code> <code class="o">-&gt;</code>
+        <code class="n">_</code><code class="p">.</code><code class="n">each</code> <code class="n">clazzes</code><code class="p">,</code> <code class="p">(</code><code class="n">clazz</code><code class="p">)</code> <code class="o">-&gt;</code>
+          <code class="k">if</code> <code class="n">_</code><code class="p">.</code><code class="n">isFunction</code><code class="p">(</code><code class="n">clazz</code><code class="p">.</code><code class="n">prototype</code><code class="p">[</code><code class="n">name</code><code class="p">])</code>
+            <code class="n">pointcut</code> <code class="p">=</code> <code class="n">clazz</code><code class="p">.</code><code class="n">prototype</code><code class="p">[</code><code class="n">name</code><code class="p">]</code>
+            <code class="n">clazz</code><code class="p">.</code><code class="n">prototype</code><code class="p">[</code><code class="n">name</code><code class="p">]</code> <code class="p">=</code> <code class="p">(</code><code class="n">args</code><code class="p">...)</code> <code class="o">-&gt;</code>
+              <code class="n">advice</code><code class="p">.</code><code class="n">apply</code><code class="p">(</code><code class="n">this</code><code class="p">,</code> <code class="n">args</code><code class="p">)</code>
+              <code class="n">pointcut</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">this</code><code class="p">,</code> <code class="n">args</code><code class="p">)</code>
+</pre></div>
+
+</div>
+
+<p>This is really simple, we are composing a method with a function. The method already defined in the class is called the <em>pointcut</em>, and the function we are supplying is called the <em>advice</em>. Unlike a purely functional combinator, we are only executing the advice for side-effects, not for its result. But in object-oriented imperative programming, that&#x2019;s usually what we want.</p>
+
+<p>
+  <strong>other method combinations</strong>
+</p>
+
+<p>That looks handy. But we also want an <em>after method</em>, a way to compose methods in the other order. Good news, the after combination is exactly what we want. After combinations are very handy for things like logging method calls or cleaning things up.</p>
+
+<p>But there&#x2019;s another great use for after combinators, triggering events. Event triggering code is often very decoupled from method logic: The whole point of events is to invert control so that an object like a <code>Wumpus</code> doesn&#x2019;t need to know which objects want to do something after it moves. For example,  a Backbone.js view might be observing the Wumpus and wish to update itself when the Wumpus moves:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">YouAreDaChef</code><code class="p">(</code><code class="n">Wumpus</code><code class="p">,</code> <code class="n">Hunter</code><code class="p">)</code>
+	<code class="p">.</code><code class="n">after</code> <code class="s">'run'</code><code class="p">,</code> <code class="p">()</code> <code class="o">-&gt;</code>
+		<code class="n">this</code><code class="p">.</code><code class="n">trigger</code> <code class="s">'move'</code><code class="p">,</code> <code class="n">this</code>
+		
+<code class="n">CaveView</code> <code class="p">=</code> <code class="n">Backbone</code><code class="p">.</code><code class="n">View</code><code class="p">.</code><code class="n">extend</code>
+	<code class="n">initialize</code><code class="p">:</code> <code class="o">-&gt;</code>
+		# <code class="p">...</code>
+		<code class="p">@</code><code class="n">model</code><code class="p">.</code><code class="n">bind</code> <code class="s">'move'</code><code class="p">,</code> <code class="p">@</code><code class="n">wumpusMoved</code>
+	<code class="n">wumpusMoved</code><code class="p">:</code> <code class="p">(</code><code class="n">wumpus</code><code class="p">)</code> <code class="o">-&gt;</code>
+		# <code class="p">...</code>
+</pre></div>
+
+</div>
+
+<p>The code coupling the view to the model has now been separated from the code defining the model itself.</p>
+
+<p>YouAreDaChef also provides other mechanisms for separating concerns. <em>Around combinations</em> (also called around advice) are a very general-purpose combinator. With an around combination, the original method (the pointcut) is passed to the advice function as a parameter, allowing it to be called at any time.</p>
+
+<p>Around advice is useful for wrapping methods. Using an around combinator, you could bake error handling and transactions into methods without encumbering their code with implementation details. In this example, we define the methods to be matched using a regular expression, and YouAreDaChef passes the result of the match to the advice function, which wraps them in a transaction and adds some logging:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">class</code> <code class="n">EnterpriseyLegume</code>
+  <code class="n">setId</code><code class="p">:</code>         <code class="p">(@</code><code class="n">id</code><code class="p">)</code>         <code class="o">-&gt;</code>
+  <code class="n">setName</code><code class="p">:</code>       <code class="p">(@</code><code class="n">name</code><code class="p">)</code>       <code class="o">-&gt;</code>
+  <code class="n">setDepartment</code><code class="p">:</code> <code class="p">(@</code><code class="n">department</code><code class="p">)</code> <code class="o">-&gt;</code>
+  <code class="n">setCostCentre</code><code class="p">:</code> <code class="p">(@</code><code class="n">costCentre</code><code class="p">)</code> <code class="o">-&gt;</code>
+
+<code class="n">YouAreDaChef</code><code class="p">(</code><code class="n">EnterpriseyLegume</code><code class="p">)</code>
+  <code class="p">.</code><code class="n">around</code> <code class="o">/</code><code class="n">set</code><code class="p">(</code><code class="o">.*</code><code class="p">)</code><code class="o">/</code><code class="p">,</code> <code class="p">(</code><code class="n">pointcut</code><code class="p">,</code> <code class="n">match</code><code class="p">,</code> <code class="n">value</code><code class="p">)</code> <code class="o">-&gt;</code>
+    <code class="n">performTransaction</code> <code class="p">()</code> <code class="o">-&gt;</code>
+      <code class="n">writeToLog</code> "#<code class="p">{</code><code class="n">match</code><code class="p">[</code>1<code class="p">]}:</code> #<code class="p">{</code><code class="n">value</code><code class="p">}</code>"
+      <code class="n">pointcut</code><code class="p">(</code><code class="n">value</code><code class="p">)</code>
+</pre></div>
+
+</div>
+
+<p>
+  <strong>summary</strong>
+</p>
+
+<p>Method combinations are a technique for separating concerns when the level of granularity is smaller than a method. This makes the code DRY and removes the clutter of orthogonal responsibilities.</p>
+</div>
+<div id="leanpub-toc">
+<h2>Table of Contents</h2>
+<ol class="toc">
+<li class="section"><a href="chap00.html#the-mit-license"><span class="section-number">0.1 </span>The MIT License</a></li>
+<li class="section"><a href="chap00.html#preface"><span class="section-number">0.2 </span>Preface</a></li>
+<li class="chapter"><a href="chap01.html#introduction"><span class="section-number">1 </span>Introduction</a></li>
+<li class="chapter"><a href="chap02.html#kestrels"><span class="section-number">2 </span>Kestrels</a></li>
+<li class="section"><a href="chap02.html#object-initializer-blocks"><span class="section-number">2.1 </span>Object initializer blocks</a></li>
+<li class="section"><a href="chap02.html#inside-an-idiomatic-ruby-kestrel"><span class="section-number">2.2 </span>Inside, an idiomatic Ruby Kestrel</a></li>
+<li class="section"><a href="chap02.html#the-enchaining-kestrel"><span class="section-number">2.3 </span>The Enchaining Kestrel</a></li>
+<li class="section"><a href="chap02.html#the-obdurate-kestrel"><span class="section-number">2.4 </span>The Obdurate Kestrel</a></li>
+<li class="section"><a href="chap02.html#kestrels-on-rails"><span class="section-number">2.5 </span>Kestrels on Rails</a></li>
+<li class="section"><a href="chap02.html#rewriting-returning-in-rails"><span class="section-number">2.6 </span>Rewriting &#x201C;Returning&#x201D; in Rails</a></li>
+<li class="chapter"><a href="chap03.html#the-thrush"><span class="section-number">3 </span>The Thrush</a></li>
+<li class="section"><a href="chap03.html#let"><span class="section-number">3.1 </span>Let</a></li>
+<li class="chapter"><a href="chap04.html#songs-of-the-cardinal"><span class="section-number">4 </span>Songs of the Cardinal</a></li>
+<li class="section"><a href="chap04.html#building-a-cardinal-in-ruby"><span class="section-number">4.1 </span>Building a Cardinal in Ruby</a></li>
+<li class="chapter"><a href="chap05.html#quirky-birds-and-meta-syntactic-programming"><span class="section-number">5 </span>Quirky Birds and Meta-Syntactic Programming</a></li>
+<li class="section"><a href="chap05.html#a-limited-interpretation-of-the-quirky-bird-in-ruby"><span class="section-number">5.1 </span>A limited interpretation of the Quirky Bird in Ruby</a></li>
+<li class="section"><a href="chap05.html#embracing-the-quirky-bird"><span class="section-number">5.2 </span>Embracing the Quirky Bird</a></li>
+<li class="section"><a href="chap05.html#andand-even-more"><span class="section-number">5.3 </span>Andand even more</a></li>
+<li class="chapter"><a href="chap06.html#aspect-oriented-programming-in-ruby-using-combinator-birds"><span class="section-number">6 </span>Aspect-Oriented Programming in Ruby using Combinator Birds</a></li>
+<li class="section"><a href="chap06.html#giving-methods-advice"><span class="section-number">6.1 </span>Giving methods advice</a></li>
+<li class="section"><a href="chap06.html#the-super-keyword-perhaps-youve-heard-of-it"><span class="section-number">6.2 </span>The super keyword, perhaps you&#x2019;ve heard of it?</a></li>
+<li class="section"><a href="chap06.html#the-queer-bird"><span class="section-number">6.3 </span>The Queer Bird</a></li>
+<li class="chapter"><a href="chap07.html#mockingbirds"><span class="section-number">7 </span>Mockingbirds</a></li>
+<li class="section"><a href="chap07.html#duplicative-combinators"><span class="section-number">7.1 </span>Duplicative Combinators</a></li>
+<li class="section"><a href="chap07.html#recursive-lambdas-in-ruby"><span class="section-number">7.2 </span>Recursive Lambdas in Ruby</a></li>
+<li class="section"><a href="chap07.html#recursive-combinatorics"><span class="section-number">7.3 </span>Recursive Combinatorics</a></li>
+<li class="section"><a href="chap07.html#recursive-combinators-in-idiomatic-ruby"><span class="section-number">7.4 </span>Recursive Combinators in Idiomatic Ruby</a></li>
+<li class="section"><a href="chap07.html#the-mockingbird"><span class="section-number">7.5 </span>The Mockingbird</a></li>
+<li class="chapter"><a href="chap08.html#refactoring-methods-with-recursive-combinators"><span class="section-number">8 </span>Refactoring Methods with Recursive Combinators</a></li>
+<li class="section"><a href="chap08.html#divide-and-conquer"><span class="section-number">8.1 </span>Divide and Conquer</a></li>
+<li class="section"><a href="chap08.html#the-merge-sort"><span class="section-number">8.2 </span>The Merge Sort</a></li>
+<li class="section"><a href="chap08.html#separating-declaration-from-implementation"><span class="section-number">8.3 </span>Separating Declaration from Implementation</a></li>
+<li class="section"><a href="chap08.html#practical-recursive-combinators"><span class="section-number">8.4 </span>Practical Recursive Combinators</a></li>
+<li class="section"><a href="chap08.html#spicing-things-up"><span class="section-number">8.5 </span>Spicing things up</a></li>
+<li class="section"><a href="chap08.html#building-on-a-legacy"><span class="section-number">8.6 </span>Building on a legacy</a></li>
+<li class="section"><a href="chap08.html#seriously"><span class="section-number">8.7 </span>Seriously</a></li>
+<li class="section"><a href="chap08.html#separating-implementation-from-declaration"><span class="section-number">8.8 </span>Separating Implementation from Declaration</a></li>
+<li class="section"><a href="chap08.html#a-really-simple-recursive-combinator"><span class="section-number">8.9 </span>A Really Simple Recursive Combinator</a></li>
+<li class="chapter"><a href="chap09.html#you-cant-be-serious"><span class="section-number">9 </span>You can&#x2019;t be serious!?</a></li>
+<li class="section"><a href="chap09.html#string-to-proc"><span class="section-number">9.1 </span>String to Proc</a></li>
+<li class="section"><a href="chap09.html#the-message"><span class="section-number">9.2 </span>The Message</a></li>
+<li class="chapter"><a href="chap10.html#the-hopelessly-egocentric-book-chapter"><span class="section-number">10 </span>The Hopelessly Egocentric Book Chapter</a></li>
+<li class="section"><a href="chap10.html#object-oriented-egocentricity"><span class="section-number">10.1 </span>Object-oriented egocentricity</a></li>
+<li class="chapter"><a href="chap11.html#bonus-chapter-separating-concerns-in-coffeescript-using-aspect-oriented-programming"><span class="section-number">11 </span>Bonus Chapter: Separating Concerns in Coffeescript using Aspect-Oriented Programming</a></li>
+<li class="chapter"><a href="chap12.html#appendix-finding-joy-in-combinators"><span class="section-number">12 </span>Appendix: Finding Joy in Combinators</a></li>
+<li class="section"><a href="chap12.html#languages-for-combinatorial-logic"><span class="section-number">12.1 </span>Languages for combinatorial logic</a></li>
+<li class="section"><a href="chap12.html#concatenative-languages"><span class="section-number">12.2 </span>Concatenative languages</a></li>
+<li class="chapter"><a href="chap13.html#appendix-source-code"><span class="section-number">13 </span>Appendix: Source Code</a></li>
+<li class="section"><a href="chap13.html#kestrels-1"><span class="section-number">13.1 </span>kestrels</a></li>
+<li class="section"><a href="chap13.html#thrushes"><span class="section-number">13.2 </span>thrushes</a></li>
+<li class="section"><a href="chap13.html#the-cardinal"><span class="section-number">13.3 </span>the cardinal</a></li>
+<li class="section"><a href="chap13.html#quirky-birds"><span class="section-number">13.4 </span>quirky birds</a></li>
+<li class="section"><a href="chap13.html#bluebirds"><span class="section-number">13.5 </span>bluebirds</a></li>
+<li class="chapter"><a href="chap14.html#about-the-author"><span class="section-number">14 </span>About The Author</a></li>
+<li class="section"><a href="chap14.html#contact"><span class="section-number">14.1 </span>contact</a></li>
+</ol>
+</div>
+</body>
+</html>
