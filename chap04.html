@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>4 Songs of the Cardinal</title>
+<link href="stylesheet.css" type="text/css" rel="stylesheet" />
+</head>
+<body>
+<div id="leanpub-main">
+<h2 section-num="4" id="songs-of-the-cardinal"><span class="section-number">4 </span>Songs of the Cardinal</h2>
+
+<p>In Combinatory Logic, the cardinal is one of the most basic <em>permuting</em> combinators; it reverses and parenthesizes the normal order of evaluation. The cardinal is written <code>Cxyz = xzy</code>. In Ruby:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">cardinal</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">proc_over_proc</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_proc</code><code class="p">)</code>
+  <code class="p">=</code><code class="o">&gt;</code> <code class="n">proc_over_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_proc</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">)</code>
+</pre></div>
+
+</div>
+
+<p>What does this mean? Let&#x2019;s compare it to the Thrush. The thrush is written <code>Txy = yx</code>. In Ruby terms,</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">thrush</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_proc</code><code class="p">)</code>
+  <code class="p">=</code><code class="o">&gt;</code> <code class="n">a_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">)</code>
+</pre></div>
+
+</div>
+
+<p>The salient difference is that a cardinal doesn&#x2019;t just pass <code>a_value</code> to <code>a_proc</code>. What it does is first passes <code>a_proc</code> to <code>proc_over_proc</code> and then passes <code>a_value</code> to the result. This implies that <code>proc_over_proc</code> is a function that takes a function as its argument and returns a function.</p>
+
+<p>Or in plainer terms, you want a cardinal when you would like to modify what a function or a block does. Now you can see why we can derive a thrush from a cardinal. If we write:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">identity</code> <code class="p">=</code> <code class="n">lambda</code> <code class="p">{</code> <code class="o">|</code><code class="n">f</code><code class="o">|</code> <code class="n">f</code> <code class="p">}</code>
+</pre></div>
+
+</div>
+
+<p>Then we can write:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">thrush</code> <code class="p">=</code> <code class="n">cardinal</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">identity</code><code class="p">)</code>
+</pre></div>
+
+</div>
+
+<p>What we have done is say a thrush is what you get when you use a cardinal and a function that doesn&#x2019;t modify its function but answers it right back.</p>
+
+<blockquote>
+  <p><em>Note to ornithologists and ontologists</em>:</p>
+</blockquote>
+
+<blockquote>
+  <p>This is not object orientation: a thrush is not a kind of cardinal. The correct relationship between them in Ruby is that a cardinal creates a thrush. Or in Smullyan&#x2019;s songbird metaphor, if you call out the name of an identity bird to a cardinal, it will call out the name of a thrush back to you.</p>
+</blockquote>
+
+<p>Now, this bizarre syntactic convention of writing <code>foo.call(bar).call(bash)</code> is not very helpful for actually writing software. It is great for explaining what&#x2019;s going on, but if we are going to use Ruby for the examples, we need to lift our game up a level and make some idiomatic Ruby.</p>
+
+<h3 section-num="4.1" id="building-a-cardinal-in-ruby"><span class="section-number">4.1 </span>Building a Cardinal in Ruby</h3>
+
+<p>The next chunk of code works around the fact that Ruby 1.8 can&#x2019;t define a proc that takes a block and also doesn&#x2019;t allow <code>define_method</code> to define a method that takes a block. So for Ruby 1.8, we will start by making a utility method that defines methods that can take a block, based on <a href="http://coderrr.wordpress.com/2008/10/29/using-define_method-with-blocks-in-ruby-18/" title="Using define_method with blocks in Ruby 1.8">an idea from coderr</a>. For Ruby 1.9 this is not necessary: you can use <code>define_method</code> to define methods that take blocks as arguments.</p>
+
+<div class="code-block">
+<div class="highlight"><pre>def define_method_taking_block<code class="p">(</code>name<code class="p">,</code> method_body_proc<code class="p">)</code>
+  self.class.send :define_method<code class="p">,</code> <code class="s">"__cardinal_helper_#{name}__"</code><code class="p">,</code> <code class="o">&amp;</code>method_bo\
+dy_proc
+  eval <code class="o">&lt;&lt;-</code>EOM
+    def <code class="c1">#{name}(a_value, &amp;a_proc)</code>
+      __cardinal_helper_<code class="c1">#{name}__(a_value, a_proc)</code>
+    end
+  EOM
+end
+</pre></div>
+
+</div>
+
+<blockquote>
+  <p>Now we can see what the expression &#x201C;accidental complexity&#x201D; means. Do you see how we need a long paragraph and a chunk of code to explain how we are working around a limitation in our tool? And how the digression to explain the workaround is longer than the actual code we want to write? Ugh!</p>
+</blockquote>
+
+<p>With <em>that</em> out of the way, we can write our cardinal:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">def</code> <code class="n">cardinal_define</code><code class="p">(</code><code class="n">name</code><code class="p">,</code> <code class="o">&amp;</code><code class="n">proc_over_proc</code><code class="p">)</code>
+  <code class="n">define_method_taking_block</code><code class="p">(</code><code class="n">name</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">a_value</code><code class="p">,</code> <code class="n">a_proc</code><code class="o">|</code>
+      <code class="n">proc_over_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_proc</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">)</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>Ready to try it? Here&#x2019;s a familiar example. We&#x2019;ll need a <code>proc_over_proc</code>, our proc that modifies another proc. Because we&#x2019;re trying to be Ruby-ish, we&#x2019;ll write it out as a block:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">do</code> <code class="o">|</code><code class="n">a_proc</code><code class="o">|</code>
+</pre></div>
+
+</div>
+  	  lambda { |a_value|
+<div class="code-block">
+<div class="highlight"><pre>    <code class="n">a_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">)</code> <code class="n">unless</code> <code class="n">a_value</code><code class="p">.</code><code class="n">nil</code>?
+  <code class="p">}</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>This takes a <code>a_proc</code> and returns a brand new proc that only calls <code>a_proc</code> if the value you pass it is not nil. Now let&#x2019;s use our cardinal to define a new method:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">cardinal_define</code><code class="p">(:</code><code class="n">maybe</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">a_proc</code><code class="o">|</code>
+  <code class="n">lambda</code> <code class="p">{</code> <code class="o">|</code><code class="n">a_value</code><code class="o">|</code>
+    <code class="n">a_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">)</code> <code class="n">unless</code> <code class="n">a_value</code><code class="p">.</code><code class="n">nil</code>?
+  <code class="p">}</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>Let&#x2019;s try it out:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">maybe</code><code class="p">(</code>1<code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">x</code><code class="o">|</code> <code class="n">x</code> <code class="o">+</code> 1 <code class="p">}</code>
+  <code class="p">=</code><code class="o">&gt;</code> 2
+<code class="n">maybe</code><code class="p">(</code><code class="n">nil</code><code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">x</code><code class="o">|</code> <code class="n">x</code> <code class="o">+</code> 1 <code class="p">}</code>
+  <code class="p">=</code><code class="o">&gt;</code> <code class="n">nil</code>
+</pre></div>
+
+</div>
+
+<p>If we&#x2019;re using Rails, we can make a slightly different version of <code>maybe</code>:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">cardinal_define</code><code class="p">(:</code><code class="n">unless_blank</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">a_proc</code><code class="o">|</code>
+</pre></div>
+
+</div>
+  	  lambda { |a_value|
+<div class="code-block">
+<div class="highlight"><pre>    <code class="n">a_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">)</code> <code class="n">unless</code> <code class="n">a_value</code><code class="p">.</code><code class="n">blank</code>?
+  <code class="p">}</code>
+<code class="k">end</code>
+
+<code class="n">unless_blank</code><code class="p">(</code><code class="n">Person</code><code class="p">.</code><code class="nb">find</code><code class="p">(...).</code><code class="n">name</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">name</code><code class="o">|</code>
+  <code class="n">register_name_on_title</code><code class="p">(</code><code class="n">name</code><code class="p">)</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>Remember we said the cardinal can be used to define a thrush? Let&#x2019;s try our Ruby cardinal out to do the same thing. Recall that expressing the identity bird as a block is:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">do</code> <code class="o">|</code><code class="n">a_proc</code><code class="o">|</code>
+  <code class="n">a_proc</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>Therefore we can define a thrush with:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">cardinal_define</code><code class="p">(:</code><code class="n">let</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">a_proc</code><code class="o">|</code>
+  <code class="n">a_proc</code>
+<code class="k">end</code>
+
+<code class="n">let</code><code class="p">((</code>1<code class="p">..</code>10<code class="p">).</code><code class="n">select</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="c">% 2 == 1 }.inject { |mem, var| mem + var }) do |\</code>
+<code class="n">x</code><code class="o">|</code> 
+  <code class="n">x</code> <code class="o">*</code> <code class="n">x</code>
+<code class="k">end</code>
+  <code class="p">=</code><code class="o">&gt;</code> 625
+</pre></div>
+
+</div>
+
+<p>As you can see, once you have a defined a cardinal, you can create an infinite variety of methods that have thrush-like syntax&#x2013;a method that applies a value to a block&#x2013;but you can modify or augment the <em>semantics</em> of the block in any way you want.</p>
+
+<p>In Ruby terms, you are meta-programming. In Smullyan&#x2019;s terms, you are <em>Listening to the Songs of the Cardinal</em>.</p>
+</div>
+<div id="leanpub-toc">
+<h2>Table of Contents</h2>
+<ol class="toc">
+<li class="section"><a href="chap00.html#the-mit-license"><span class="section-number">0.1 </span>The MIT License</a></li>
+<li class="section"><a href="chap00.html#preface"><span class="section-number">0.2 </span>Preface</a></li>
+<li class="chapter"><a href="chap01.html#introduction"><span class="section-number">1 </span>Introduction</a></li>
+<li class="chapter"><a href="chap02.html#kestrels"><span class="section-number">2 </span>Kestrels</a></li>
+<li class="section"><a href="chap02.html#object-initializer-blocks"><span class="section-number">2.1 </span>Object initializer blocks</a></li>
+<li class="section"><a href="chap02.html#inside-an-idiomatic-ruby-kestrel"><span class="section-number">2.2 </span>Inside, an idiomatic Ruby Kestrel</a></li>
+<li class="section"><a href="chap02.html#the-enchaining-kestrel"><span class="section-number">2.3 </span>The Enchaining Kestrel</a></li>
+<li class="section"><a href="chap02.html#the-obdurate-kestrel"><span class="section-number">2.4 </span>The Obdurate Kestrel</a></li>
+<li class="section"><a href="chap02.html#kestrels-on-rails"><span class="section-number">2.5 </span>Kestrels on Rails</a></li>
+<li class="section"><a href="chap02.html#rewriting-returning-in-rails"><span class="section-number">2.6 </span>Rewriting &#x201C;Returning&#x201D; in Rails</a></li>
+<li class="chapter"><a href="chap03.html#the-thrush"><span class="section-number">3 </span>The Thrush</a></li>
+<li class="section"><a href="chap03.html#let"><span class="section-number">3.1 </span>Let</a></li>
+<li class="chapter"><a href="chap04.html#songs-of-the-cardinal"><span class="section-number">4 </span>Songs of the Cardinal</a></li>
+<li class="section"><a href="chap04.html#building-a-cardinal-in-ruby"><span class="section-number">4.1 </span>Building a Cardinal in Ruby</a></li>
+<li class="chapter"><a href="chap05.html#quirky-birds-and-meta-syntactic-programming"><span class="section-number">5 </span>Quirky Birds and Meta-Syntactic Programming</a></li>
+<li class="section"><a href="chap05.html#a-limited-interpretation-of-the-quirky-bird-in-ruby"><span class="section-number">5.1 </span>A limited interpretation of the Quirky Bird in Ruby</a></li>
+<li class="section"><a href="chap05.html#embracing-the-quirky-bird"><span class="section-number">5.2 </span>Embracing the Quirky Bird</a></li>
+<li class="section"><a href="chap05.html#andand-even-more"><span class="section-number">5.3 </span>Andand even more</a></li>
+<li class="chapter"><a href="chap06.html#aspect-oriented-programming-in-ruby-using-combinator-birds"><span class="section-number">6 </span>Aspect-Oriented Programming in Ruby using Combinator Birds</a></li>
+<li class="section"><a href="chap06.html#giving-methods-advice"><span class="section-number">6.1 </span>Giving methods advice</a></li>
+<li class="section"><a href="chap06.html#the-super-keyword-perhaps-youve-heard-of-it"><span class="section-number">6.2 </span>The super keyword, perhaps you&#x2019;ve heard of it?</a></li>
+<li class="section"><a href="chap06.html#the-queer-bird"><span class="section-number">6.3 </span>The Queer Bird</a></li>
+<li class="chapter"><a href="chap07.html#mockingbirds"><span class="section-number">7 </span>Mockingbirds</a></li>
+<li class="section"><a href="chap07.html#duplicative-combinators"><span class="section-number">7.1 </span>Duplicative Combinators</a></li>
+<li class="section"><a href="chap07.html#recursive-lambdas-in-ruby"><span class="section-number">7.2 </span>Recursive Lambdas in Ruby</a></li>
+<li class="section"><a href="chap07.html#recursive-combinatorics"><span class="section-number">7.3 </span>Recursive Combinatorics</a></li>
+<li class="section"><a href="chap07.html#recursive-combinators-in-idiomatic-ruby"><span class="section-number">7.4 </span>Recursive Combinators in Idiomatic Ruby</a></li>
+<li class="section"><a href="chap07.html#the-mockingbird"><span class="section-number">7.5 </span>The Mockingbird</a></li>
+<li class="chapter"><a href="chap08.html#refactoring-methods-with-recursive-combinators"><span class="section-number">8 </span>Refactoring Methods with Recursive Combinators</a></li>
+<li class="section"><a href="chap08.html#divide-and-conquer"><span class="section-number">8.1 </span>Divide and Conquer</a></li>
+<li class="section"><a href="chap08.html#the-merge-sort"><span class="section-number">8.2 </span>The Merge Sort</a></li>
+<li class="section"><a href="chap08.html#separating-declaration-from-implementation"><span class="section-number">8.3 </span>Separating Declaration from Implementation</a></li>
+<li class="section"><a href="chap08.html#practical-recursive-combinators"><span class="section-number">8.4 </span>Practical Recursive Combinators</a></li>
+<li class="section"><a href="chap08.html#spicing-things-up"><span class="section-number">8.5 </span>Spicing things up</a></li>
+<li class="section"><a href="chap08.html#building-on-a-legacy"><span class="section-number">8.6 </span>Building on a legacy</a></li>
+<li class="section"><a href="chap08.html#seriously"><span class="section-number">8.7 </span>Seriously</a></li>
+<li class="section"><a href="chap08.html#separating-implementation-from-declaration"><span class="section-number">8.8 </span>Separating Implementation from Declaration</a></li>
+<li class="section"><a href="chap08.html#a-really-simple-recursive-combinator"><span class="section-number">8.9 </span>A Really Simple Recursive Combinator</a></li>
+<li class="chapter"><a href="chap09.html#you-cant-be-serious"><span class="section-number">9 </span>You can&#x2019;t be serious!?</a></li>
+<li class="section"><a href="chap09.html#string-to-proc"><span class="section-number">9.1 </span>String to Proc</a></li>
+<li class="section"><a href="chap09.html#the-message"><span class="section-number">9.2 </span>The Message</a></li>
+<li class="chapter"><a href="chap10.html#the-hopelessly-egocentric-book-chapter"><span class="section-number">10 </span>The Hopelessly Egocentric Book Chapter</a></li>
+<li class="section"><a href="chap10.html#object-oriented-egocentricity"><span class="section-number">10.1 </span>Object-oriented egocentricity</a></li>
+<li class="chapter"><a href="chap11.html#bonus-chapter-separating-concerns-in-coffeescript-using-aspect-oriented-programming"><span class="section-number">11 </span>Bonus Chapter: Separating Concerns in Coffeescript using Aspect-Oriented Programming</a></li>
+<li class="chapter"><a href="chap12.html#appendix-finding-joy-in-combinators"><span class="section-number">12 </span>Appendix: Finding Joy in Combinators</a></li>
+<li class="section"><a href="chap12.html#languages-for-combinatorial-logic"><span class="section-number">12.1 </span>Languages for combinatorial logic</a></li>
+<li class="section"><a href="chap12.html#concatenative-languages"><span class="section-number">12.2 </span>Concatenative languages</a></li>
+<li class="chapter"><a href="chap13.html#appendix-source-code"><span class="section-number">13 </span>Appendix: Source Code</a></li>
+<li class="section"><a href="chap13.html#kestrels-1"><span class="section-number">13.1 </span>kestrels</a></li>
+<li class="section"><a href="chap13.html#thrushes"><span class="section-number">13.2 </span>thrushes</a></li>
+<li class="section"><a href="chap13.html#the-cardinal"><span class="section-number">13.3 </span>the cardinal</a></li>
+<li class="section"><a href="chap13.html#quirky-birds"><span class="section-number">13.4 </span>quirky birds</a></li>
+<li class="section"><a href="chap13.html#bluebirds"><span class="section-number">13.5 </span>bluebirds</a></li>
+<li class="chapter"><a href="chap14.html#about-the-author"><span class="section-number">14 </span>About The Author</a></li>
+<li class="section"><a href="chap14.html#contact"><span class="section-number">14.1 </span>contact</a></li>
+</ol>
+</div>
+</body>
+</html>

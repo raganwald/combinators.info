@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>6 Aspect-Oriented Programming in Ruby using Combinator Birds</title>
+<link href="stylesheet.css" type="text/css" rel="stylesheet" />
+</head>
+<body>
+<div id="leanpub-main">
+<h2 section-num="6" id="aspect-oriented-programming-in-ruby-using-combinator-birds"><span class="section-number">6 </span>Aspect-Oriented Programming in Ruby using Combinator Birds</h2>
+
+<p>In Combinatory Logic, the bluebird is one of the most important and fundamental combinators, because the bluebird <em>composes</em> two other combinators. Although this is usually discussed as part of <a href="http://weblog.raganwald.com/2007/03/why-why-functional-programming-matters.html" title="Why Why Functional Programming Matters Matters">functional programming style</a>, it is just as valuable when writing object-oriented programs. In this post, we will develop an <a href="http://en.wikipedia.org/wiki/Aspect-oriented_programming">aspect-oriented programming</a> (or &#x201C;AOP&#x201D;) module that adds before methods and after methods to Ruby programs, with the implementation inspired by the bluebird. The bluebird is written <code>Bxyz = x(yz)</code>. In Ruby, we can express the bluebird like this:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">bluebird</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">proc1</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">proc2</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">value</code><code class="p">)</code>
+	<code class="p">=</code><code class="o">&gt;</code> <code class="n">proc1</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">proc2</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">value</code><code class="p">))</code>
+</pre></div>
+
+</div>
+
+<p>If this seems a little arcane, consider a simple Ruby expression <code>(x * 2) + 1</code>: This expression <em>composes</em> multiplication and addition. Composition is so pervasive in programming languages that it becomes part of the syntax, something we take for granted. We don&#x2019;t have to think about it until someone like Oliver Steele writes a library like <a href="http://osteele.com/sources/javascript/functional/">functional javascript</a> that introduces a <code>compose</code> function, then we have to ask what it does.</p>
+
+<p>Before we start using bluebirds, let&#x2019;s be clear about something. We wrote that <code>bluebird.call(proc1).call(proc2).call(value)</code> is equivalent to <code>proc1.call(proc2.call(value))</code>. We want to be very careful that we understand what is special about <code>proc1.call(proc2.call(value))</code>. How is it different from <code>proc1.call(proc2).call(value)</code>?</p>
+
+<p>The answer is:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">proc1</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">proc2</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">value</code><code class="p">))</code>
+	<code class="p">=</code><code class="o">&gt;</code> <code class="n">puts</code> <code class="n">value</code> <code class="n">into</code> <code class="n">proc2</code><code class="p">,</code> <code class="n">then</code> <code class="n">puts</code> <code class="n">the</code> <code class="n">result</code> <code class="n">of</code> <code class="n">that</code> <code class="n">into</code> <code class="n">proc1</code>
+
+<code class="n">proc1</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">proc2</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">value</code><code class="p">)</code>
+	<code class="p">=</code><code class="o">&gt;</code> <code class="n">puts</code> <code class="n">proc2</code> <code class="n">into</code> <code class="n">proc1</code><code class="p">,</code> <code class="n">getting</code> <code class="n">a</code> <code class="k">function</code> <code class="n">out</code><code class="p">,</code> <code class="n">then</code> <code class="n">puts</code> <code class="n">value</code> <code class="n">into</code> <code class="n">the</code><code class="o">\</code>
+ <code class="n">new</code> <code class="k">function</code>
+</pre></div>
+
+</div>
+
+<p>So with a bluebird you can chain functions together in series, while if you didn&#x2019;t have a bluebird all you could do is write functions that transform other functions. Not that there&#x2019;s anything wrong with that, we used that to great effect with <a href="http://github.com/raganwald/homoiconic/tree/master/2008-10-31/songs_of_the_cardinal.markdown#readme">cardinals</a> and <a href="http://github.com/raganwald/homoiconic/tree/master/2008-11-04/quirky_birds_and_meta_syntactic_programming.markdown#readme">quirky birds</a>.</p>
+
+<h3 section-num="6.1" id="giving-methods-advice"><span class="section-number">6.1 </span>Giving methods advice</h3>
+
+<p>We&#x2019;re not actually going to <a href="http://en.wikipedia.org/wiki/Greenspun%27s_Tenth_Rule" title="Greenspun's Tenth Rule - Wikipedia, the free encyclopedia">Greenspun</a> an entire aspect-oriented layer on top of Ruby, but we will add a simple feature, we are going to add <em>before and after methods</em>. You already know what a normal method is. A before method simply specifies some behaviour you want executed before the method is called, while an after method specifies some behaviour you want executed after the method is called. In AOP, before and after methods are called &#x201C;advice.&#x201D;</p>
+
+<blockquote>
+  <p>There is an unwritten rule that says every Ruby programmer must, at some point, write his or her own AOP implementation &#x2013;Avdi Grimm</p>
+</blockquote>
+
+<p>Ruby on Rails programmers are familiar with method advice. If you have ever written any of the following, you were using Rails&#x2019; built-in aspect-oriented programming support:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">after_save</code>
+<code class="n">validates_each</code>
+<code class="n">alias_method_chain</code>
+<code class="n">before_filter</code>
+</pre></div>
+
+</div>
+
+<p>These and other features of Rails implement method advice, albeit in a very specific way tuned to portions of the Rails framework. We&#x2019;re going to implement method advice in a module that you can use in any of your classes, on any method or methods you choose. We&#x2019;ll start with before methods. Here&#x2019;s the syntax we want:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">def</code> <code class="n">something</code><code class="p">(</code><code class="n">parameter</code><code class="p">)</code>
+	# <code class="n">do</code> <code class="n">stuff</code><code class="p">...</code>
+<code class="k">end</code>
+
+<code class="n">before</code> <code class="p">:</code><code class="n">something</code> <code class="n">do</code> <code class="o">|</code><code class="n">parameter</code><code class="o">|</code>
+	# <code class="n">stuff</code> <code class="n">to</code> <code class="n">do</code> <code class="n">BEFORE</code> <code class="n">we</code> <code class="n">do</code> <code class="n">stuff</code><code class="p">...</code>
+<code class="k">end</code>
+
+<code class="n">before</code> <code class="p">:</code><code class="n">something</code> <code class="n">do</code> <code class="o">|</code><code class="n">parameter</code><code class="o">|</code>
+	# <code class="n">stuff</code> <code class="n">to</code> <code class="n">do</code> <code class="n">BEFORE</code> <code class="n">stuff</code> <code class="n">to</code> <code class="n">do</code> <code class="n">BEFORE</code> <code class="n">we</code> <code class="n">do</code> <code class="n">stuff</code><code class="p">...</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>As we can see, the before methods get chained together before the method. To keep this nice and clean, we are going to make them work just like composable functions: whatever our before method&#x2019;s block returns will be passed as a parameter up the chain. We also won&#x2019;t fool around with altering the order of before methods, we&#x2019;ll just take them as they come.</p>
+
+<p>This is really simple, we are composing methods. To compare to the bluebird above, we are writing <code>before</code>, then the name of a method, then a function. I&#x2019;ll rewrite it like this:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">bluebird</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">something</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">stuff_to_do_before_we_do_stuff</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">value</code><code class="p">)</code>
+	<code class="p">=</code><code class="o">&gt;</code> <code class="n">something</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">stuff_to_do_before_we_do_stuff</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">value</code><code class="p">))</code>
+</pre></div>
+
+</div>
+
+<p>Now we can see that this newfangled aspect-oriented programming stuff was figured out nearly a century ago by people like <a href="http://en.wikipedia.org/wiki/Alonzo_Church">Alonzo Church</a>.</p>
+
+<p>Okay, enough history, let&#x2019;s get started. First, we are not going to write any C, so there is no way to actually force the Ruby VM to call our before methods. So instead, we are going to have to rewrite our method. We&#x2019;ll use a <a href="http://blog.jayfields.com/2006/12/ruby-alias-method-alternative.html" title="Jay Fields' Thoughts: Ruby: Alias method alternative">trick</a> I found on Jay Fields&#x2019; blog:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">module</code> <code class="n">NaiveBeforeMethods</code>
+  
+  <code class="n">module</code> <code class="n">ClassMethods</code>
+
+    <code class="n">def</code> <code class="n">before</code><code class="p">(</code><code class="n">method_sym</code><code class="p">,</code> <code class="o">&amp;</code><code class="n">block</code><code class="p">)</code>
+      <code class="n">old_method</code> <code class="p">=</code> <code class="n">self</code><code class="p">.</code><code class="n">instance_method</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code>
+      <code class="k">if</code> <code class="n">old_method</code><code class="p">.</code><code class="n">arity</code> <code class="o">==</code> 0
+        <code class="n">define_method</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code> <code class="n">do</code>
+          <code class="n">block</code><code class="p">.</code><code class="n">call</code>
+          <code class="n">old_method</code><code class="p">.</code><code class="n">bind</code><code class="p">(</code><code class="n">self</code><code class="p">).</code><code class="n">call</code>
+        <code class="k">end</code>
+      <code class="k">else</code>
+        <code class="n">define_method</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code> <code class="n">do</code> <code class="o">|*</code><code class="n">params</code><code class="o">|</code>
+          <code class="n">old_method</code><code class="p">.</code><code class="n">bind</code><code class="p">(</code><code class="n">self</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="o">*</code><code class="n">block</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="o">*</code><code class="n">params</code><code class="p">))</code>
+        <code class="k">end</code>
+      <code class="k">end</code>
+    <code class="k">end</code>
+
+  <code class="k">end</code>
+  
+  <code class="n">def</code> <code class="n">self</code><code class="p">.</code><code class="n">included</code><code class="p">(</code><code class="n">receiver</code><code class="p">)</code>
+    <code class="n">receiver</code><code class="p">.</code><code class="n">extend</code>         <code class="n">ClassMethods</code>
+  <code class="k">end</code>
+  
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>As you can see, we have a special case for methods with no parameters, and when we have a method with multiple parameters, our before method must answer an array of parameters. And the implementation relies on a &#x201C;flock of bluebirds:&#x201D; Our before methods and the underlying base method are composed with each other to define the method that is actually executed at run time.</p>
+
+<p>Using it is very easy:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">class</code> <code class="n">SuperFoo</code>
+
+  <code class="n">def</code> <code class="n">one_parameter</code><code class="p">(</code><code class="n">x</code><code class="p">)</code>
+    <code class="n">x</code> <code class="o">+</code> 1
+  <code class="k">end</code>
+
+  <code class="n">def</code> <code class="n">two_parameters</code><code class="p">(</code><code class="n">x</code><code class="p">,</code> <code class="n">y</code><code class="p">)</code>
+    <code class="n">x</code> <code class="o">*</code> <code class="n">y</code>
+  <code class="k">end</code>
+  
+<code class="k">end</code>
+
+<code class="n">class</code> <code class="n">Foo</code> <code class="o">&lt;</code> <code class="n">SuperFoo</code>
+
+  <code class="n">include</code> <code class="n">NaiveBeforeMethods</code>
+
+  <code class="n">before</code> <code class="p">:</code><code class="n">one_parameter</code> <code class="n">do</code> <code class="o">|</code><code class="n">x</code><code class="o">|</code>
+    <code class="n">x</code> <code class="o">*</code> 2
+  <code class="k">end</code>
+
+  <code class="n">before</code> <code class="p">:</code><code class="n">two_parameters</code> <code class="n">do</code> <code class="o">|</code><code class="n">x</code><code class="p">,</code> <code class="n">y</code><code class="o">|</code>
+    <code class="p">[</code><code class="n">x</code> <code class="o">+</code> <code class="n">y</code><code class="p">,</code> <code class="n">x</code> <code class="o">-</code> <code class="n">y</code><code class="p">]</code>
+  <code class="k">end</code>
+
+<code class="k">end</code>
+
+<code class="n">Foo</code><code class="p">.</code><code class="n">new</code><code class="p">.</code><code class="n">one_parameter</code><code class="p">(</code>5<code class="p">)</code>
+	<code class="p">=</code><code class="o">&gt;</code> 11
+
+<code class="n">Foo</code><code class="p">.</code><code class="n">new</code><code class="p">.</code><code class="n">two_parameters</code><code class="p">(</code>3<code class="p">,</code>1<code class="p">)</code>
+	<code class="p">=</code><code class="o">&gt;</code> 8
+</pre></div>
+
+</div>
+
+<blockquote>
+  <p>This could be even more useful if it supported methods with blocks. Adventurous readers may want to combine this code with the tricks in <code>cardinal.rb</code> and see if they can build a version of <code>before</code> that supports methods that take blocks.</p>
+</blockquote>
+
+<h3 section-num="6.2" id="the-super-keyword-perhaps-youve-heard-of-it"><span class="section-number">6.2 </span>The super keyword, perhaps you&#x2019;ve heard of it?</h3>
+
+<p>Of course, Ruby provides a means of &#x2018;decorating&#x2019; methods like this by overriding a method and calling <code>super</code> within it. So we might have written:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">class</code> <code class="n">Foo</code> <code class="o">&lt;</code> <code class="n">SuperFoo</code>
+
+  <code class="n">def</code> <code class="n">one_parameter</code><code class="p">(</code><code class="n">x</code><code class="p">)</code>
+    <code class="n">super</code><code class="p">(</code><code class="n">x</code> <code class="o">*</code> 2<code class="p">)</code>
+  <code class="k">end</code>
+
+  <code class="n">def</code> <code class="n">two_parameters</code><code class="p">(</code><code class="n">x</code><code class="p">,</code> <code class="n">y</code><code class="p">)</code>
+    <code class="n">super</code><code class="p">(</code><code class="n">x</code> <code class="o">+</code> <code class="n">y</code><code class="p">,</code> <code class="n">x</code> <code class="o">-</code> <code class="n">y</code><code class="p">)</code>
+  <code class="k">end</code>
+
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>On a trivial example, the two techniques seem equivalent, so why bother with the extra baggage? The answer is that using <code>super</code> is a little low level. When you see a method definition in a language like Ruby, you don&#x2019;t know whether you are defining a new method, overriding an existing method with entirely new functionality, or &#x201C;decorating&#x201D; a method with before advice. Using advice can be useful when you want to signal exactly what you are trying to accomplish.</p>
+
+<p>Another reason to prefer method advice is when you want to share some functionality:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">class</code> <code class="n">LoggingFoo</code> <code class="o">&lt;</code> <code class="n">SuperFoo</code>
+
+	<code class="n">def</code> <code class="n">one_parameter</code><code class="p">(</code><code class="n">x</code><code class="p">)</code>
+		<code class="n">log_entry</code>
+		<code class="n">returning</code><code class="p">(</code><code class="n">super</code><code class="p">)</code> <code class="n">do</code>
+			<code class="n">log_exit</code>
+		<code class="k">end</code>
+	<code class="k">end</code>
+
+	<code class="n">def</code> <code class="n">two_parameters</code><code class="p">(</code><code class="n">x</code><code class="p">,</code> <code class="n">y</code><code class="p">)</code>
+		<code class="n">log_entry</code>
+		<code class="n">returning</code><code class="p">(</code><code class="n">super</code><code class="p">)</code> <code class="n">do</code>
+			<code class="n">log_exit</code>
+		<code class="k">end</code>
+	<code class="k">end</code>
+
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>This could be written as:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">class</code> <code class="n">LoggingFoo</code> <code class="o">&lt;</code> <code class="n">SuperFoo</code>
+
+  <code class="n">include</code> <code class="n">NaiveBeforeMethods</code>
+
+  <code class="n">before</code> <code class="p">:</code><code class="n">one_parameter</code><code class="p">,</code> <code class="p">:</code><code class="n">two_parameters</code> <code class="n">do</code> # <code class="n">see</code> <code class="n">below</code>
+    <code class="n">log_entry</code>
+  <code class="k">end</code>
+
+  <code class="n">after</code> <code class="p">:</code><code class="n">one_parameter</code><code class="p">,</code> <code class="p">:</code><code class="n">two_parameters</code> <code class="n">do</code>
+    <code class="n">log_exit</code>
+  <code class="k">end</code>
+
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>This cleanly separates the concern of logging from the mechanism of what the methods actually do</p>
+
+<blockquote>
+  <p>Although this is not the main benefit, method advice also works with methods defined in modules and the current class, not just superclasses. So in some ways it is even more flexible than Ruby&#x2019;s <code>super</code> keyword.</p>
+</blockquote>
+
+<h3 section-num="6.3" id="the-queer-bird"><span class="section-number">6.3 </span>The Queer Bird</h3>
+
+<p>That looks handy. But we also want an <em>after method</em>, a way to compose methods in the other order. Good news, the Queer Bird combinator is exactly what we want. Written <code>Qxyz = y(xz)</code>, the Ruby equivalent is:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">queer_bird</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">something</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">stuff_to_do_after_we_do_stuff</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">value</code><code class="p">)</code>
+	<code class="p">=</code><code class="o">&gt;</code> <code class="n">stuff_to_do_after_we_do_stuff</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">something</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">value</code><code class="p">))</code>
+</pre></div>
+
+</div>
+
+<p>Which is, of course:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">def</code> <code class="n">something</code><code class="p">(</code><code class="n">parameter</code><code class="p">)</code>
+	# <code class="n">do</code> <code class="n">stuff</code><code class="p">...</code>
+<code class="k">end</code>
+
+<code class="n">after</code> <code class="p">:</code><code class="n">something</code> <code class="n">do</code> <code class="o">|</code><code class="n">return_value</code><code class="o">|</code>
+	# <code class="n">stuff</code> <code class="n">to</code> <code class="n">do</code> <code class="n">AFTER</code> <code class="n">we</code> <code class="n">do</code> <code class="n">stuff</code><code class="p">...</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>The difference between before and after advice is that after advice is consumes and transforms whatever the method returns, while before advice consumes and transforms the parameters to the method.</p>
+
+<p>We <em>could</em> copy, paste and modify our bluebird code for the before methods to create after methods. But before you rush off to implement that, you might want to think about a few interesting &#x201C;real world&#x201D; requirements:</p>
+
+<ol><li>If you define before and after methods in any order, the final result should be that all of the before methods are run before the main method, then all of the after methods. This is not part of combinatory logic, but it&#x2019;s the standard behaviour people expect from before and after methods.</li>
+  <li>You should be able to apply the same advice to more than one method, for example by writing <code>after :foo, :bar do ... end</code></li>
+  <li>If you declare parameters for before advice, whatever it returns will be used by the next method, just like the example above. If you do not declare parameters for before advice, whatever it returns should be ignored. The same goes for after advice.</li>
+  <li>If you override the main method, the before and after methods should still work.</li>
+  <li>The blocks provided should execute in the receiver&#x2019;s scope, like method bodies.</li>
+</ol><p>One implementation meeting these requirements is in the appendix. Embedded in a lot of extra moving parts, the basic pattern of composing methods is still evident:</p>
+
+<div class="code-block">
+  <p class="codeblock-title">naive_before_advice.rb</p>
+
+  <hr /><div class="highlight"><pre><code class="k">module</code> <code class="nn">NaiveBeforeAdvice</code>
+
+  <code class="k">module</code> <code class="nn">ClassMethods</code>
+
+    <code class="k">def</code> <code class="nf">before</code><code class="p">(</code><code class="n">method_sym</code><code class="p">,</code> <code class="o">&amp;</code><code class="n">block</code><code class="p">)</code>
+      <code class="n">old_method</code> <code class="o">=</code> <code class="nb">self</code><code class="o">.</code><code class="n">instance_method</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code>
+      <code class="k">if</code> <code class="n">old_method</code><code class="o">.</code><code class="n">arity</code> <code class="o">==</code> <code class="mi">0</code>
+        <code class="n">define_method</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code> <code class="k">do</code>
+          <code class="n">block</code><code class="o">.</code><code class="n">call</code>
+          <code class="n">old_method</code><code class="o">.</code><code class="n">bind</code><code class="p">(</code><code class="nb">self</code><code class="p">)</code><code class="o">.</code><code class="n">call</code>
+        <code class="k">end</code>
+      <code class="k">else</code>
+        <code class="n">define_method</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code> <code class="k">do</code> <code class="o">|*</code><code class="n">params</code><code class="o">|</code>
+          <code class="n">old_method</code><code class="o">.</code><code class="n">bind</code><code class="p">(</code><code class="nb">self</code><code class="p">)</code><code class="o">.</code><code class="n">call</code><code class="p">(</code><code class="o">*</code><code class="n">block</code><code class="o">.</code><code class="n">call</code><code class="p">(</code><code class="o">*</code><code class="n">params</code><code class="p">))</code>
+        <code class="k">end</code>
+      <code class="k">end</code>
+    <code class="k">end</code>
+
+  <code class="k">end</code>
+
+  <code class="k">def</code> <code class="nc">self</code><code class="o">.</code><code class="nf">included</code><code class="p">(</code><code class="n">receiver</code><code class="p">)</code>
+    <code class="n">receiver</code><code class="o">.</code><code class="n">extend</code>         <code class="no">ClassMethods</code>
+  <code class="k">end</code>
+
+<code class="k">end</code>
+</pre></div>
+
+  <hr /></div>
+
+<p>That is why we looked at supporting just before methods first. If you are comfortable with the na&#xEF;ve implementation of before advice discussed above, the mechanism is easy to understand. The complete version is considerably more powerful. As mentioned, it supports before and after advice. It also uses <code>instance_exec</code> to evaluate the blocks in the receiver&#x2019;s scope, providing access to private methods and instance variables. And it works properly even when you override the method being advised.</p>
+</div>
+<div id="leanpub-toc">
+<h2>Table of Contents</h2>
+<ol class="toc">
+<li class="section"><a href="chap00.html#the-mit-license"><span class="section-number">0.1 </span>The MIT License</a></li>
+<li class="section"><a href="chap00.html#preface"><span class="section-number">0.2 </span>Preface</a></li>
+<li class="chapter"><a href="chap01.html#introduction"><span class="section-number">1 </span>Introduction</a></li>
+<li class="chapter"><a href="chap02.html#kestrels"><span class="section-number">2 </span>Kestrels</a></li>
+<li class="section"><a href="chap02.html#object-initializer-blocks"><span class="section-number">2.1 </span>Object initializer blocks</a></li>
+<li class="section"><a href="chap02.html#inside-an-idiomatic-ruby-kestrel"><span class="section-number">2.2 </span>Inside, an idiomatic Ruby Kestrel</a></li>
+<li class="section"><a href="chap02.html#the-enchaining-kestrel"><span class="section-number">2.3 </span>The Enchaining Kestrel</a></li>
+<li class="section"><a href="chap02.html#the-obdurate-kestrel"><span class="section-number">2.4 </span>The Obdurate Kestrel</a></li>
+<li class="section"><a href="chap02.html#kestrels-on-rails"><span class="section-number">2.5 </span>Kestrels on Rails</a></li>
+<li class="section"><a href="chap02.html#rewriting-returning-in-rails"><span class="section-number">2.6 </span>Rewriting &#x201C;Returning&#x201D; in Rails</a></li>
+<li class="chapter"><a href="chap03.html#the-thrush"><span class="section-number">3 </span>The Thrush</a></li>
+<li class="section"><a href="chap03.html#let"><span class="section-number">3.1 </span>Let</a></li>
+<li class="chapter"><a href="chap04.html#songs-of-the-cardinal"><span class="section-number">4 </span>Songs of the Cardinal</a></li>
+<li class="section"><a href="chap04.html#building-a-cardinal-in-ruby"><span class="section-number">4.1 </span>Building a Cardinal in Ruby</a></li>
+<li class="chapter"><a href="chap05.html#quirky-birds-and-meta-syntactic-programming"><span class="section-number">5 </span>Quirky Birds and Meta-Syntactic Programming</a></li>
+<li class="section"><a href="chap05.html#a-limited-interpretation-of-the-quirky-bird-in-ruby"><span class="section-number">5.1 </span>A limited interpretation of the Quirky Bird in Ruby</a></li>
+<li class="section"><a href="chap05.html#embracing-the-quirky-bird"><span class="section-number">5.2 </span>Embracing the Quirky Bird</a></li>
+<li class="section"><a href="chap05.html#andand-even-more"><span class="section-number">5.3 </span>Andand even more</a></li>
+<li class="chapter"><a href="chap06.html#aspect-oriented-programming-in-ruby-using-combinator-birds"><span class="section-number">6 </span>Aspect-Oriented Programming in Ruby using Combinator Birds</a></li>
+<li class="section"><a href="chap06.html#giving-methods-advice"><span class="section-number">6.1 </span>Giving methods advice</a></li>
+<li class="section"><a href="chap06.html#the-super-keyword-perhaps-youve-heard-of-it"><span class="section-number">6.2 </span>The super keyword, perhaps you&#x2019;ve heard of it?</a></li>
+<li class="section"><a href="chap06.html#the-queer-bird"><span class="section-number">6.3 </span>The Queer Bird</a></li>
+<li class="chapter"><a href="chap07.html#mockingbirds"><span class="section-number">7 </span>Mockingbirds</a></li>
+<li class="section"><a href="chap07.html#duplicative-combinators"><span class="section-number">7.1 </span>Duplicative Combinators</a></li>
+<li class="section"><a href="chap07.html#recursive-lambdas-in-ruby"><span class="section-number">7.2 </span>Recursive Lambdas in Ruby</a></li>
+<li class="section"><a href="chap07.html#recursive-combinatorics"><span class="section-number">7.3 </span>Recursive Combinatorics</a></li>
+<li class="section"><a href="chap07.html#recursive-combinators-in-idiomatic-ruby"><span class="section-number">7.4 </span>Recursive Combinators in Idiomatic Ruby</a></li>
+<li class="section"><a href="chap07.html#the-mockingbird"><span class="section-number">7.5 </span>The Mockingbird</a></li>
+<li class="chapter"><a href="chap08.html#refactoring-methods-with-recursive-combinators"><span class="section-number">8 </span>Refactoring Methods with Recursive Combinators</a></li>
+<li class="section"><a href="chap08.html#divide-and-conquer"><span class="section-number">8.1 </span>Divide and Conquer</a></li>
+<li class="section"><a href="chap08.html#the-merge-sort"><span class="section-number">8.2 </span>The Merge Sort</a></li>
+<li class="section"><a href="chap08.html#separating-declaration-from-implementation"><span class="section-number">8.3 </span>Separating Declaration from Implementation</a></li>
+<li class="section"><a href="chap08.html#practical-recursive-combinators"><span class="section-number">8.4 </span>Practical Recursive Combinators</a></li>
+<li class="section"><a href="chap08.html#spicing-things-up"><span class="section-number">8.5 </span>Spicing things up</a></li>
+<li class="section"><a href="chap08.html#building-on-a-legacy"><span class="section-number">8.6 </span>Building on a legacy</a></li>
+<li class="section"><a href="chap08.html#seriously"><span class="section-number">8.7 </span>Seriously</a></li>
+<li class="section"><a href="chap08.html#separating-implementation-from-declaration"><span class="section-number">8.8 </span>Separating Implementation from Declaration</a></li>
+<li class="section"><a href="chap08.html#a-really-simple-recursive-combinator"><span class="section-number">8.9 </span>A Really Simple Recursive Combinator</a></li>
+<li class="chapter"><a href="chap09.html#you-cant-be-serious"><span class="section-number">9 </span>You can&#x2019;t be serious!?</a></li>
+<li class="section"><a href="chap09.html#string-to-proc"><span class="section-number">9.1 </span>String to Proc</a></li>
+<li class="section"><a href="chap09.html#the-message"><span class="section-number">9.2 </span>The Message</a></li>
+<li class="chapter"><a href="chap10.html#the-hopelessly-egocentric-book-chapter"><span class="section-number">10 </span>The Hopelessly Egocentric Book Chapter</a></li>
+<li class="section"><a href="chap10.html#object-oriented-egocentricity"><span class="section-number">10.1 </span>Object-oriented egocentricity</a></li>
+<li class="chapter"><a href="chap11.html#bonus-chapter-separating-concerns-in-coffeescript-using-aspect-oriented-programming"><span class="section-number">11 </span>Bonus Chapter: Separating Concerns in Coffeescript using Aspect-Oriented Programming</a></li>
+<li class="chapter"><a href="chap12.html#appendix-finding-joy-in-combinators"><span class="section-number">12 </span>Appendix: Finding Joy in Combinators</a></li>
+<li class="section"><a href="chap12.html#languages-for-combinatorial-logic"><span class="section-number">12.1 </span>Languages for combinatorial logic</a></li>
+<li class="section"><a href="chap12.html#concatenative-languages"><span class="section-number">12.2 </span>Concatenative languages</a></li>
+<li class="chapter"><a href="chap13.html#appendix-source-code"><span class="section-number">13 </span>Appendix: Source Code</a></li>
+<li class="section"><a href="chap13.html#kestrels-1"><span class="section-number">13.1 </span>kestrels</a></li>
+<li class="section"><a href="chap13.html#thrushes"><span class="section-number">13.2 </span>thrushes</a></li>
+<li class="section"><a href="chap13.html#the-cardinal"><span class="section-number">13.3 </span>the cardinal</a></li>
+<li class="section"><a href="chap13.html#quirky-birds"><span class="section-number">13.4 </span>quirky birds</a></li>
+<li class="section"><a href="chap13.html#bluebirds"><span class="section-number">13.5 </span>bluebirds</a></li>
+<li class="chapter"><a href="chap14.html#about-the-author"><span class="section-number">14 </span>About The Author</a></li>
+<li class="section"><a href="chap14.html#contact"><span class="section-number">14.1 </span>contact</a></li>
+</ol>
+</div>
+</body>
+</html>

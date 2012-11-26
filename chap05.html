@@ -1,0 +1,461 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>5 Quirky Birds and Meta-Syntactic Programming</title>
+<link href="stylesheet.css" type="text/css" rel="stylesheet" />
+</head>
+<body>
+<div id="leanpub-main">
+<h2 section-num="5" id="quirky-birds-and-meta-syntactic-programming"><span class="section-number">5 </span>Quirky Birds and Meta-Syntactic Programming</h2>
+
+<p>In Combinatory Logic, the Queer Birds are a family of combinators which both parenthesize and permute. One member of the family, the <em>Quirky Bird</em>, has interesting implications for Ruby. The quirky bird is written <code>Q</code><sub><code>3</code></sub><code>xyz = z(xy)</code>. In Ruby:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">quirky</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">value_proc</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_proc</code><code class="p">)</code>
+  <code class="p">=</code><code class="o">&gt;</code> <code class="n">a_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">value_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">))</code>
+</pre></div>
+
+</div>
+
+<p>Like the Cardinal, the quirky bird reverses the order of application. But where the cardinal modifies the function that is applied to a value, the quirky bird modifies the value itself. Let&#x2019;s compare how cardinals and quirky birds work.</p>
+
+<p>
+  <strong>a cardinals refresher</strong>
+</p>
+
+<p>The cardinal is defined in its simplest Ruby form as:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">cardinal</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">proc_over_proc</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_proc</code><code class="p">)</code>
+  <code class="p">=</code><code class="o">&gt;</code> <code class="n">proc_over_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_proc</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">)</code>
+</pre></div>
+
+</div>
+
+<p>From that definition, we wrote a method called <code>cardinal_define</code> that writes methods in idiomatic Ruby. For example, here&#x2019;s how we used <code>cardinal_define</code> to generate the <code>maybe</code> method:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">cardinal_define</code><code class="p">(:</code><code class="n">maybe</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">a_proc</code><code class="o">|</code>
+  <code class="n">lambda</code> <code class="p">{</code> <code class="o">|</code><code class="n">a_value</code><code class="o">|</code>
+    <code class="n">a_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">)</code> <code class="n">unless</code> <code class="n">a_value</code><code class="p">.</code><code class="n">nil</code>?
+  <code class="p">}</code>
+<code class="k">end</code>
+
+<code class="n">maybe</code><code class="p">(</code>1<code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">x</code><code class="o">|</code> <code class="n">x</code> <code class="o">+</code> 1 <code class="p">}</code>
+  <code class="p">=</code><code class="o">&gt;</code> 2
+<code class="n">maybe</code><code class="p">(</code><code class="n">nil</code><code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">x</code><code class="o">|</code> <code class="n">x</code> <code class="o">+</code> 1 <code class="p">}</code>
+  <code class="p">=</code><code class="o">&gt;</code> <code class="n">nil</code>
+</pre></div>
+
+</div>
+
+<p>Now we are not looking at the source code for <code>maybe</code>, but from the definition of a cardinal above we know that any method defined by <code>cardinal_define</code> will look roughly like:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">def</code> <code class="n">defined_by_a_cardinal</code><code class="p">(</code><code class="n">a_value</code><code class="p">,</code> <code class="o">&amp;</code><code class="n">a_proc</code><code class="p">)</code>
+	<code class="n">proc_over_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_proc</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">)</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>Or in our case:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">def</code> <code class="n">maybe</code><code class="p">(</code><code class="n">a_value</code><code class="p">,</code> <code class="o">&amp;</code><code class="n">a_proc</code><code class="p">)</code>
+	<code class="n">lambda</code> <code class="n">do</code> <code class="o">|</code><code class="n">a_proc</code><code class="o">|</code>
+	  <code class="n">lambda</code> <code class="p">{</code> <code class="o">|</code><code class="n">a_value</code><code class="o">|</code>
+	    <code class="n">a_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">)</code> <code class="n">unless</code> <code class="n">a_value</code><code class="p">.</code><code class="n">nil</code>?
+	  <code class="p">}</code>
+	<code class="k">end</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_proc</code><code class="p">).</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">)</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>
+  <strong>and now to the quirky bird</strong>
+</p>
+
+<p>From the definition for the quirky bird, we expect that if we write <code>quirky_bird_define</code>, the methods it generates will look roughly like:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">def</code> <code class="n">defined_by_a_quirky_bird</code><code class="p">(</code><code class="n">a_value</code><code class="p">,</code> <code class="o">&amp;</code><code class="n">a_proc</code><code class="p">)</code>
+	<code class="n">a_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">value_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">))</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>So, are we ready to write <code>quirky_bird_define</code>? This seems too easy. Just copy the <code>cardinal_define</code> code, make a few changes, and we&#x2019;re done:</p>
+
+<div class="code-block">
+<div class="highlight"><pre>def quirky_bird_define<code class="p">(</code>name<code class="p">,</code> <code class="o">&amp;</code>value_proc<code class="p">)</code>
+  define_method_taking_block<code class="p">(</code>name<code class="p">)</code> do <code class="o">|</code>a_value<code class="p">,</code> a_proc<code class="o">|</code>
+    a_proc.call<code class="p">(</code>value_proc.call<code class="p">(</code>a_value<code class="p">))</code>
+  end
+end
+
+<code class="c1"># method_body_proc should expect (a_value, a_proc)</code>
+<code class="c1"># see http://coderrr.wordpress.com/2008/10/29/using-define_method-with-bloc\</code>
+ks<code class="o">-</code>in<code class="o">-</code>ruby<code class="o">-</code><code class="m">18</code><code class="o">/</code>
+def define_method_taking_block<code class="p">(</code>name<code class="p">,</code> <code class="o">&amp;</code>method_body_proc<code class="p">)</code>
+  self.class.send :define_method<code class="p">,</code> <code class="s">"__quirky_bird_helper_#{name}__"</code><code class="p">,</code> method_\
+body_proc
+  eval <code class="o">&lt;&lt;-</code>EOM
+    def <code class="c1">#{name}(a_value, &amp;a_proc)</code>
+      __quirky_bird_helper_<code class="c1">#{name}__(a_value, a_proc)</code>
+    end
+  EOM
+end
+</pre></div>
+
+</div>
+
+<p>Ok, let&#x2019;s try it out on something really trivial:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">quirky_bird_define</code><code class="p">(:</code><code class="n">square_first</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">a_value</code><code class="o">|</code>
+	<code class="n">a</code> <code class="n">value</code> <code class="o">*</code> <code class="n">a_value</code>
+<code class="k">end</code>
+
+<code class="n">square_first</code><code class="p">(</code>1<code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="o">+</code> 1 <code class="p">}</code>
+	<code class="p">=</code><code class="o">&gt;</code> 2
+
+<code class="n">square_first</code><code class="p">(</code>2<code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="o">+</code> 1 <code class="p">}</code>
+	<code class="p">=</code><code class="o">&gt;</code> 5
+</pre></div>
+
+</div>
+
+<p>It works, good. Now let&#x2019;s define <code>maybe</code> using the quirky bird we just wrote. Just so we&#x2019;re clear, I want to write:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">quirky_bird_define</code><code class="p">(:</code><code class="n">maybe</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">a_value</code><code class="o">|</code>
+	# <code class="p">...</code> <code class="n">something</code> <code class="n">goes</code> <code class="n">here</code> <code class="p">...</code>
+<code class="k">end</code>
+
+<code class="n">maybe</code><code class="p">(</code>1<code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="o">+</code> 1 <code class="p">}</code>
+	<code class="p">=</code><code class="o">&gt;</code> 2
+
+<code class="n">maybe</code><code class="p">(</code><code class="n">nil</code><code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="o">+</code> 1 <code class="p">}</code>
+	<code class="p">=</code><code class="o">&gt;</code> <code class="n">nil</code>
+</pre></div>
+
+</div>
+
+<p>Scheisse! Figuring out what to put in the block to make <code>maybe</code> work is indeed queer and quirky!!</p>
+
+<p>Now, the simple truth is, I know of no way to use a quirky bird to cover all of the possible blocks you could use with <code>maybe</code> so that it works exactly like the version of <code>maybe</code> we built with a cardinal. However, I have found that sometimes it is interesting to push an incomplete idea along if it is incomplete in interesting ways. &#x201C;Maybe&#x201D; we can learn something in the process.</p>
+
+<h3 section-num="5.1" id="a-limited-interpretation-of-the-quirky-bird-in-ruby"><span class="section-number">5.1 </span>A limited interpretation of the Quirky Bird in Ruby</h3>
+
+<p>Let&#x2019;s solve <code>maybe</code> any-which-way-we-can and see how it goes. When we used a cardinal, we wanted a proc that would modify another proc to such that if it was passed <code>nil</code>, it would answer <code>nil</code> without evaluating its contents.</p>
+
+<p>Now we want to modify a value such that if it is <code>nil</code>, it responds <code>nil</code> to the method <code>+</code>. This is doable, with the help of the <code>BlankSlate</code> class, also called a <code>BasicObject</code>. You&#x2019;ll find <code>BlankSlate</code> and <code>BasicObject</code> classes in various frameworks and Ruby 1.9, and there&#x2019;s one at <a href="http://github.com/raganwald/homoiconic/tree/master/2008-11-04/blank_slate.rb" title="2008-11-04/blank_slate.rb at master from raganwald's homoiconic &#x2014; GitHub">blank_slate.rb</a> you can use.</p>
+
+<p><code>BlankSlate</code> is a class with no methods, which is very different from the base class <code>Object</code>. That&#x2019;s because <code>Object</code> in Ruby is <em>heavyweight</em>, it has lots of useful stuff.  But we don&#x2019;t want useful stuff, because our mission is to answer a value that responds <code>nil</code> to any method you send it.</p>
+
+<p>The Ruby way to handle any method is with <code>method_missing</code>. Here&#x2019;s a really simple expression that answers an object that responds <code>nil</code> to any method:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">returning</code><code class="p">(</code><code class="n">BlankSlate</code><code class="p">.</code><code class="n">new</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">it</code><code class="o">|</code>
+  <code class="n">def</code> <code class="n">it</code><code class="p">.</code><code class="n">method_missing</code><code class="p">(</code><code class="o">*</code><code class="n">args</code><code class="p">)</code>
+    <code class="n">nil</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>Hmmm. What about:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">quirky_bird_define</code><code class="p">(:</code><code class="n">maybe</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">value</code><code class="o">|</code>
+  <code class="k">if</code> <code class="n">value</code><code class="p">.</code><code class="n">nil</code>?
+    <code class="n">returning</code><code class="p">(</code><code class="n">BlankSlate</code><code class="p">.</code><code class="n">new</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">it</code><code class="o">|</code>
+      <code class="n">def</code> <code class="n">it</code><code class="p">.</code><code class="n">method_missing</code><code class="p">(</code><code class="o">*</code><code class="n">args</code><code class="p">)</code>
+        <code class="n">nil</code>
+      <code class="k">end</code>
+    <code class="k">end</code>
+  <code class="k">else</code>
+    <code class="n">value</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>This is saying, &#x201C;Let&#x2019;s define a quirky bird method based on a <code>value_proc</code> as usual. Our <code>value_proc</code> will take a value, and if the value is <code>nil</code> we will return an object that responds with <code>nil</code> to any method. But if the value is not nil, our <code>value_proc</code> will respond with the object.&#x201D;</p>
+
+<p>Let&#x2019;s try it:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">maybe</code><code class="p">(</code>1<code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="o">+</code> 1 <code class="p">}</code>
+	<code class="p">=</code><code class="o">&gt;</code> 2
+
+<code class="n">maybe</code><code class="p">(</code><code class="n">nil</code><code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="o">+</code> 1 <code class="p">}</code>
+	<code class="p">=</code><code class="o">&gt;</code> <code class="n">nil</code>
+</pre></div>
+
+</div>
+
+<p>Now, I admit this is <em>very</em> flawed:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">maybe</code><code class="p">(</code><code class="n">nil</code><code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="o">+</code> 1 <code class="o">+</code> 1 <code class="p">}</code>
+</pre></div>
+
+</div>
+  		=&gt; NoMethodError: undefined method `+&#x2019; for nil:NilClass
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">maybe</code><code class="p">(</code><code class="n">nil</code><code class="p">)</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> 1 <code class="o">+</code> <code class="n">n</code> <code class="p">}</code>
+</pre></div>
+
+</div>
+  		=&gt; TypeError: coerce must return [x, y]
+
+<p>The basic problem here is that we only control the value we pass in. We can&#x2019;t modify how other objects respond to it, nor can we control what happens to any objects we return from methods called on it. So, the quirky bird turns out to be useful in the case where (a) the value is the receiver of a method, and (b) there is only one method being called, not a chain of methods.</p>
+
+<p>Hmmm again.</p>
+
+<h3 section-num="5.2" id="embracing-the-quirky-bird"><span class="section-number">5.2 </span>Embracing the Quirky Bird</h3>
+
+<p>Maybe we shouldn&#x2019;t be generating methods that deal with arbitrary blocks and procedures. One way to scale this down is to deal only with single method invocations. For example, what if instead of designing our new version of <code>maybe</code> so that we invoke it by writing <code>maybe(nil) { |n| n + 1 }</code> or <code>maybe(1) { |n| n + 1 }</code>, we design it so that we write <code>nil.maybe + 1</code> or <code>1.maybe + 1</code> instead?</p>
+
+<p>In that case, <code>maybe</code> becomes a method on the object class that applies <code>value_proc</code> to its receiver rather than being a method that takes a value and a block. Getting down to business, we are going to open the core <code>Object</code> class and add a new method to it. The body of that method will be our <code>value_proc</code>:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">def</code> <code class="n">quirky_bird_extend</code><code class="p">(</code><code class="n">name</code><code class="p">,</code> <code class="o">&amp;</code><code class="n">value_proc</code><code class="p">)</code>
+  <code class="n">Object</code><code class="p">.</code><code class="n">send</code><code class="p">(:</code><code class="n">define_method</code><code class="p">,</code> <code class="n">name</code><code class="p">)</code> <code class="n">do</code>
+    <code class="n">value_proc</code><code class="p">.</code><code class="n">call</code><code class="p">(</code><code class="n">self</code><code class="p">)</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>Just as we said, we are defining a new method in the <code>Object</code> class.</p>
+
+<blockquote>
+  <p>We are using <code>define_method</code> and a block rather than the <code>def</code> keyword. The reason is that when we use <code>define_method</code> and a block, the body of the method executes in the context of the block, not the context of the object itself. Blocks are closures in Ruby, which means that the block has access to <code>value_proc</code>, the parameter from our <code>quirky_bird_extend</code> method. </p>
+</blockquote>
+
+<blockquote>
+  <p>Had we used <code>def</code>, Ruby would try to evaluate <code>value_proc</code> in the context of the object itself. So our parameter would be lost forever. Performance wonks and compiler junkies will be interested in this behaviour, as it has very serious implications for garbage collection and memory leaks.</p>
+</blockquote>
+
+<p>Now let&#x2019;s use it with exactly the same block we used with <code>quirky_bird_define</code>:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">require</code> <code class="s">'quirky_bird'</code>
+<code class="n">require</code> <code class="s">'blank_slate'</code>
+<code class="n">require</code> <code class="s">'returning'</code>
+
+<code class="n">quirky_bird_extend</code><code class="p">(:</code><code class="n">maybe</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">value</code><code class="o">|</code>
+  <code class="k">if</code> <code class="n">value</code><code class="p">.</code><code class="n">nil</code>?
+    <code class="n">returning</code><code class="p">(</code><code class="n">BlankSlate</code><code class="p">.</code><code class="n">new</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">it</code><code class="o">|</code>
+      <code class="n">def</code> <code class="n">it</code><code class="p">.</code><code class="n">method_missing</code><code class="p">(</code><code class="o">*</code><code class="n">args</code><code class="p">)</code>
+        <code class="n">nil</code>
+      <code class="k">end</code>
+    <code class="k">end</code>
+  <code class="k">else</code>
+    <code class="n">value</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+
+<code class="n">nil</code><code class="p">.</code><code class="n">maybe</code> <code class="o">+</code> 1
+  <code class="p">=</code><code class="o">&gt;</code> <code class="n">nil</code>
+
+1<code class="p">.</code><code class="n">maybe</code> <code class="o">+</code> 1
+  <code class="p">=</code><code class="o">&gt;</code> 2
+</pre></div>
+
+</div>
+
+<p>It works. And it looks familiar! We have defined our own version of <a href="http://github.com/raganwald/andand/tree" title="sudo gem install andand">andand</a>, only this is much more <strong>interesting</strong>. Instead of a one-off handy-dandy, we have created a method that creates similar methods.</p>
+
+<p>Let&#x2019;s try it again, this time emulating Chris Wanstrath&#x2019;s <a href="http://ozmm.org/posts/try.html">try</a>:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">quirky_bird_extend</code><code class="p">(:</code><code class="k">try</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">value</code><code class="o">|</code>
+  <code class="n">returning</code><code class="p">(</code><code class="n">BlankSlate</code><code class="p">.</code><code class="n">new</code><code class="p">)</code> <code class="n">do</code> <code class="o">|</code><code class="n">it</code><code class="o">|</code>
+    <code class="n">def</code> <code class="n">it</code><code class="p">.</code><code class="n">__value__</code><code class="p">=(</code><code class="n">arg</code><code class="p">)</code>
+       <code class="p">@</code><code class="n">value</code> <code class="p">=</code> <code class="n">arg</code>
+    <code class="k">end</code>
+    <code class="n">def</code> <code class="n">it</code><code class="p">.</code><code class="n">method_missing</code><code class="p">(</code><code class="n">name</code><code class="p">,</code> <code class="o">*</code><code class="n">args</code><code class="p">)</code>
+      <code class="k">if</code> <code class="p">@</code><code class="n">value</code><code class="p">.</code><code class="n">respond_to</code>?<code class="p">(</code><code class="n">name</code><code class="p">)</code>
+        <code class="p">@</code><code class="n">value</code><code class="p">.</code><code class="n">send</code><code class="p">(</code><code class="n">name</code><code class="p">,</code> <code class="o">*</code><code class="n">args</code><code class="p">)</code>
+      <code class="k">end</code>
+    <code class="k">end</code>
+    <code class="n">it</code><code class="p">.</code><code class="n">__value__</code> <code class="p">=</code> <code class="n">value</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+
+<code class="n">nil</code><code class="p">.</code><code class="k">try</code> <code class="o">+</code> 1
+  <code class="p">=</code><code class="o">&gt;</code> <code class="n">nil</code>
+
+1<code class="p">.</code><code class="k">try</code> <code class="o">+</code> 1
+  <code class="p">=</code><code class="o">&gt;</code> 2
+
+1<code class="p">.</code><code class="k">try</code><code class="p">.</code><code class="n">ordinalize</code>
+  <code class="p">=</code><code class="o">&gt;</code> <code class="n">nil</code>
+</pre></div>
+
+</div>
+
+<p>As you can see, we can used the quirky bird to create a whole family of methods that modify the receiver in some way to produce new semantics. I can&#x2019;t show you the source code, but here is something from a proprietary Rails application:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">Account</code><code class="p">.</code><code class="n">without_requiring_authorization</code><code class="p">.</code><code class="n">create</code>!<code class="p">(...)</code>
+</pre></div>
+
+</div>
+
+<p>In this case, <code>without_requiring_authorization</code> follows the quirky bird pattern, only instead of taking an instance and producing a version that handles certain methods specially, this one takes a class and produces a version that doesn&#x2019;t enforce authorization for use in test cases.</p>
+
+<p>
+  <strong>so what have we learned?</strong>
+</p>
+
+<p>The quirky bird is superficially similar to the cardinal, however it can be used to generate syntax that is a little more method-oriented rather than function-oriented. And what&#x2019;s better than a handy method like andand? A method for defining such methods, of course.</p>
+
+<h3 section-num="5.3" id="andand-even-more"><span class="section-number">5.3 </span>Andand even more</h3>
+
+<p>As we&#x2019;ve discovered, &#x201C;andand&#x201D; is a Quirky Bird. Here&#x2019;s a little tip for using it effectively: You already know that you can use it to conditionally invoke a method on an object:</p>
+
+<div class="code-block">
+<div class="highlight"><pre>"<code class="n">foo</code>"<code class="p">.</code><code class="n">andand</code> <code class="o">+</code> "<code class="n">bar</code>"
+    # <code class="p">=</code><code class="o">&gt;</code> "<code class="n">foobar</code>"
+<code class="n">nil</code><code class="p">.</code><code class="n">andand</code> <code class="o">+</code> "<code class="n">bar</code>"
+    # <code class="p">=</code><code class="o">&gt;</code> <code class="n">nil</code>
+</pre></div>
+
+</div>
+
+<p>In other words, it&#x2019;s a Quirky Bird. But did you know that you can also use it to conditionally invoke a block? </p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="p">(</code>1<code class="p">..</code>10<code class="p">).</code><code class="n">andand</code> <code class="n">do</code> <code class="o">|</code><code class="n">numbers</code><code class="o">|</code>
+  <code class="n">doubles</code> <code class="p">=</code> <code class="n">numbers</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="o">*</code> 2 <code class="p">}</code>
+  <code class="n">double_doubles</code> <code class="p">=</code> <code class="n">doubles</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="o">*</code> 2 <code class="p">}</code>
+<code class="k">end</code>
+    # <code class="p">=</code><code class="o">&gt;</code> <code class="p">[</code>4<code class="p">,</code> 8<code class="p">,</code> 12<code class="p">,</code> 16<code class="p">,</code> 20<code class="p">,</code> 24<code class="p">,</code> 28<code class="p">,</code> 32<code class="p">,</code> 36<code class="p">,</code> 40<code class="p">]</code>
+
+<code class="n">nil</code><code class="p">.</code><code class="n">andand</code> <code class="n">do</code> <code class="o">|</code><code class="n">numbers</code><code class="o">|</code>
+  <code class="n">doubles</code> <code class="p">=</code> <code class="n">numbers</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="o">*</code> 2 <code class="p">}</code>
+  <code class="n">double_doubles</code> <code class="p">=</code> <code class="n">doubles</code><code class="p">.</code><code class="n">map</code> <code class="p">{</code> <code class="o">|</code><code class="n">n</code><code class="o">|</code> <code class="n">n</code> <code class="o">*</code> 2 <code class="p">}</code>
+<code class="k">end</code>
+    # <code class="p">=</code><code class="o">&gt;</code> <code class="n">nil</code>
+</pre></div>
+
+</div>
+
+<p>It&#x2019;s not just a Quirky Bird, it&#x2019;s also a Cardinal!</p>
+
+<p>Consider this conditional code:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="k">if</code> <code class="n">my_var</code> <code class="p">=</code> <code class="n">something_or_other</code><code class="p">()</code>
+  3<code class="p">.</code><code class="n">times</code> <code class="n">do</code>
+    <code class="n">yada</code><code class="p">(</code><code class="n">my_var</code><code class="p">)</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>I&#x2019;m not a big fan. The obvious sin is the pathetic 90s cultural reference. But I&#x2019;m even more annoyed by having side-effects in the predicate of an <code>if</code> clause, in this case assigning something to the variable <code>my_var</code>. Although I&#x2019;m not switching to a purely functional language any time soon, I strongly prefer that when you write <code>if something()</code>, then &#x201C;something()&#x201D; should not cause any side effects, ever.</p>
+
+<p>Another problem is that we are obviously creating <code>my_var</code> just to use inside the block, but we&#x2019;re declaring it in top-level scope. We could fool around with a Thrush like <code>let</code>, but instead let&#x2019;s use <code>Object#andand</code>:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">something_or_other</code><code class="p">().</code><code class="n">andand</code> <code class="n">do</code> <code class="o">|</code><code class="n">my_var</code><code class="o">|</code>
+  3<code class="p">.</code><code class="n">times</code> <code class="n">do</code>
+    <code class="n">yada</code><code class="p">(</code><code class="n">my_var</code><code class="p">)</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>Now we are making it clear that we wish to execute this block only if <code>something_or_other()</code> is not nil. Furthermore, we are assigning the result of <code>something_or_other()</code> to <code>my_var</code> and using it within the block. <a href="http://www.youtube.com/watch?v=ryXsn7fLV-M" title="YouTube - 7-UP Commercial featuring Geoffrey Holder">Crisp and clean, no caffeine</a>.</p>
+
+<p>Note that if we don&#x2019;t actually <em>need</em> <code>my_var</code> in the block, we don&#x2019;t really need <code>andand</code> either:</p>
+
+<div class="code-block">
+<div class="highlight"><pre><code class="n">something_or_other</code><code class="p">()</code> <code class="n">and</code> <code class="n">begin</code>
+  3<code class="p">.</code><code class="n">times</code> <code class="n">do</code>
+    <code class="n">yada</code><code class="p">()</code>
+  <code class="k">end</code>
+<code class="k">end</code>
+</pre></div>
+
+</div>
+
+<p>Like anything else, <code>andand do ... end</code> is a tool to be used in specialized situations. Use it whenever you want to do something more complicated than a simple message send, but only when the subject is not <code>nil</code>.</p>
+</div>
+<div id="leanpub-toc">
+<h2>Table of Contents</h2>
+<ol class="toc">
+<li class="section"><a href="chap00.html#the-mit-license"><span class="section-number">0.1 </span>The MIT License</a></li>
+<li class="section"><a href="chap00.html#preface"><span class="section-number">0.2 </span>Preface</a></li>
+<li class="chapter"><a href="chap01.html#introduction"><span class="section-number">1 </span>Introduction</a></li>
+<li class="chapter"><a href="chap02.html#kestrels"><span class="section-number">2 </span>Kestrels</a></li>
+<li class="section"><a href="chap02.html#object-initializer-blocks"><span class="section-number">2.1 </span>Object initializer blocks</a></li>
+<li class="section"><a href="chap02.html#inside-an-idiomatic-ruby-kestrel"><span class="section-number">2.2 </span>Inside, an idiomatic Ruby Kestrel</a></li>
+<li class="section"><a href="chap02.html#the-enchaining-kestrel"><span class="section-number">2.3 </span>The Enchaining Kestrel</a></li>
+<li class="section"><a href="chap02.html#the-obdurate-kestrel"><span class="section-number">2.4 </span>The Obdurate Kestrel</a></li>
+<li class="section"><a href="chap02.html#kestrels-on-rails"><span class="section-number">2.5 </span>Kestrels on Rails</a></li>
+<li class="section"><a href="chap02.html#rewriting-returning-in-rails"><span class="section-number">2.6 </span>Rewriting &#x201C;Returning&#x201D; in Rails</a></li>
+<li class="chapter"><a href="chap03.html#the-thrush"><span class="section-number">3 </span>The Thrush</a></li>
+<li class="section"><a href="chap03.html#let"><span class="section-number">3.1 </span>Let</a></li>
+<li class="chapter"><a href="chap04.html#songs-of-the-cardinal"><span class="section-number">4 </span>Songs of the Cardinal</a></li>
+<li class="section"><a href="chap04.html#building-a-cardinal-in-ruby"><span class="section-number">4.1 </span>Building a Cardinal in Ruby</a></li>
+<li class="chapter"><a href="chap05.html#quirky-birds-and-meta-syntactic-programming"><span class="section-number">5 </span>Quirky Birds and Meta-Syntactic Programming</a></li>
+<li class="section"><a href="chap05.html#a-limited-interpretation-of-the-quirky-bird-in-ruby"><span class="section-number">5.1 </span>A limited interpretation of the Quirky Bird in Ruby</a></li>
+<li class="section"><a href="chap05.html#embracing-the-quirky-bird"><span class="section-number">5.2 </span>Embracing the Quirky Bird</a></li>
+<li class="section"><a href="chap05.html#andand-even-more"><span class="section-number">5.3 </span>Andand even more</a></li>
+<li class="chapter"><a href="chap06.html#aspect-oriented-programming-in-ruby-using-combinator-birds"><span class="section-number">6 </span>Aspect-Oriented Programming in Ruby using Combinator Birds</a></li>
+<li class="section"><a href="chap06.html#giving-methods-advice"><span class="section-number">6.1 </span>Giving methods advice</a></li>
+<li class="section"><a href="chap06.html#the-super-keyword-perhaps-youve-heard-of-it"><span class="section-number">6.2 </span>The super keyword, perhaps you&#x2019;ve heard of it?</a></li>
+<li class="section"><a href="chap06.html#the-queer-bird"><span class="section-number">6.3 </span>The Queer Bird</a></li>
+<li class="chapter"><a href="chap07.html#mockingbirds"><span class="section-number">7 </span>Mockingbirds</a></li>
+<li class="section"><a href="chap07.html#duplicative-combinators"><span class="section-number">7.1 </span>Duplicative Combinators</a></li>
+<li class="section"><a href="chap07.html#recursive-lambdas-in-ruby"><span class="section-number">7.2 </span>Recursive Lambdas in Ruby</a></li>
+<li class="section"><a href="chap07.html#recursive-combinatorics"><span class="section-number">7.3 </span>Recursive Combinatorics</a></li>
+<li class="section"><a href="chap07.html#recursive-combinators-in-idiomatic-ruby"><span class="section-number">7.4 </span>Recursive Combinators in Idiomatic Ruby</a></li>
+<li class="section"><a href="chap07.html#the-mockingbird"><span class="section-number">7.5 </span>The Mockingbird</a></li>
+<li class="chapter"><a href="chap08.html#refactoring-methods-with-recursive-combinators"><span class="section-number">8 </span>Refactoring Methods with Recursive Combinators</a></li>
+<li class="section"><a href="chap08.html#divide-and-conquer"><span class="section-number">8.1 </span>Divide and Conquer</a></li>
+<li class="section"><a href="chap08.html#the-merge-sort"><span class="section-number">8.2 </span>The Merge Sort</a></li>
+<li class="section"><a href="chap08.html#separating-declaration-from-implementation"><span class="section-number">8.3 </span>Separating Declaration from Implementation</a></li>
+<li class="section"><a href="chap08.html#practical-recursive-combinators"><span class="section-number">8.4 </span>Practical Recursive Combinators</a></li>
+<li class="section"><a href="chap08.html#spicing-things-up"><span class="section-number">8.5 </span>Spicing things up</a></li>
+<li class="section"><a href="chap08.html#building-on-a-legacy"><span class="section-number">8.6 </span>Building on a legacy</a></li>
+<li class="section"><a href="chap08.html#seriously"><span class="section-number">8.7 </span>Seriously</a></li>
+<li class="section"><a href="chap08.html#separating-implementation-from-declaration"><span class="section-number">8.8 </span>Separating Implementation from Declaration</a></li>
+<li class="section"><a href="chap08.html#a-really-simple-recursive-combinator"><span class="section-number">8.9 </span>A Really Simple Recursive Combinator</a></li>
+<li class="chapter"><a href="chap09.html#you-cant-be-serious"><span class="section-number">9 </span>You can&#x2019;t be serious!?</a></li>
+<li class="section"><a href="chap09.html#string-to-proc"><span class="section-number">9.1 </span>String to Proc</a></li>
+<li class="section"><a href="chap09.html#the-message"><span class="section-number">9.2 </span>The Message</a></li>
+<li class="chapter"><a href="chap10.html#the-hopelessly-egocentric-book-chapter"><span class="section-number">10 </span>The Hopelessly Egocentric Book Chapter</a></li>
+<li class="section"><a href="chap10.html#object-oriented-egocentricity"><span class="section-number">10.1 </span>Object-oriented egocentricity</a></li>
+<li class="chapter"><a href="chap11.html#bonus-chapter-separating-concerns-in-coffeescript-using-aspect-oriented-programming"><span class="section-number">11 </span>Bonus Chapter: Separating Concerns in Coffeescript using Aspect-Oriented Programming</a></li>
+<li class="chapter"><a href="chap12.html#appendix-finding-joy-in-combinators"><span class="section-number">12 </span>Appendix: Finding Joy in Combinators</a></li>
+<li class="section"><a href="chap12.html#languages-for-combinatorial-logic"><span class="section-number">12.1 </span>Languages for combinatorial logic</a></li>
+<li class="section"><a href="chap12.html#concatenative-languages"><span class="section-number">12.2 </span>Concatenative languages</a></li>
+<li class="chapter"><a href="chap13.html#appendix-source-code"><span class="section-number">13 </span>Appendix: Source Code</a></li>
+<li class="section"><a href="chap13.html#kestrels-1"><span class="section-number">13.1 </span>kestrels</a></li>
+<li class="section"><a href="chap13.html#thrushes"><span class="section-number">13.2 </span>thrushes</a></li>
+<li class="section"><a href="chap13.html#the-cardinal"><span class="section-number">13.3 </span>the cardinal</a></li>
+<li class="section"><a href="chap13.html#quirky-birds"><span class="section-number">13.4 </span>quirky birds</a></li>
+<li class="section"><a href="chap13.html#bluebirds"><span class="section-number">13.5 </span>bluebirds</a></li>
+<li class="chapter"><a href="chap14.html#about-the-author"><span class="section-number">14 </span>About The Author</a></li>
+<li class="section"><a href="chap14.html#contact"><span class="section-number">14.1 </span>contact</a></li>
+</ol>
+</div>
+</body>
+</html>
