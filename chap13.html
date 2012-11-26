@@ -398,7 +398,7 @@
 <code class="c1"># THE SOFTWARE.</code>
 <code class="c1"># </code>
 <code class="c1"># http://www.opensource.org/licenses/mit-license.php</code>
-  
+
 <code class="k">def</code> <code class="nf">quirky_bird_define</code><code class="p">(</code><code class="nb">name</code><code class="p">,</code> <code class="o">&amp;</code><code class="n">value_proc</code><code class="p">)</code>
   <code class="n">define_method_taking_block</code><code class="p">(</code><code class="nb">name</code><code class="p">)</code> <code class="k">do</code> <code class="o">|</code><code class="n">a_value</code><code class="p">,</code> <code class="n">a_proc</code><code class="o">|</code>
     <code class="n">a_proc</code><code class="o">.</code><code class="n">call</code><code class="p">(</code><code class="n">value_proc</code><code class="o">.</code><code class="n">call</code><code class="p">(</code><code class="n">a_value</code><code class="p">))</code>
@@ -417,7 +417,7 @@
 <code class="sh">    end</code>
 <code class="no">  EOM</code>
 <code class="k">end</code>
-  
+
 <code class="k">def</code> <code class="nf">quirky_bird_extend</code><code class="p">(</code><code class="nb">name</code><code class="p">,</code> <code class="o">&amp;</code><code class="n">value_proc</code><code class="p">)</code>
   <code class="no">Object</code><code class="o">.</code><code class="n">send</code><code class="p">(</code><code class="ss">:define_method</code><code class="p">,</code> <code class="nb">name</code><code class="p">)</code> <code class="k">do</code>
     <code class="n">value_proc</code><code class="o">.</code><code class="n">call</code><code class="p">(</code><code class="nb">self</code><code class="p">)</code>
@@ -508,17 +508,17 @@
 <code class="c1"># And a heaping side of http://blog.grayproductions.net/articles/all_about_\</code>
 <code class="n">struct</code>
 
-<code class="k">module</code> <code class="nn">BeforeAndAfterAdvice</code> 
-  
+<code class="k">module</code> <code class="nn">BeforeAndAfterAdvice</code>
+
   <code class="c1"># Random ID changed at each interpreter load</code>
   <code class="no">UNIQ</code> <code class="o">=</code> <code class="s2">"_</code><code class="si">#{</code><code class="nb">object_id</code><code class="si">}</code><code class="s2">"</code>
-  
+
   <code class="no">Compositions</code> <code class="o">=</code> <code class="no">Struct</code><code class="o">.</code><code class="n">new</code><code class="p">(</code><code class="ss">:before</code><code class="p">,</code> <code class="ss">:between</code><code class="p">,</code> <code class="ss">:after</code><code class="p">)</code>
-  
+
   <code class="k">module</code> <code class="nn">MethodAdvice</code><code class="p">;</code> <code class="k">end</code>
-  
+
   <code class="k">module</code> <code class="nn">ClassMethods</code>
-    
+
     <code class="c1"># Example:</code>
     <code class="c1">#</code>
     <code class="c1">#   before :foo, :bar do</code>
@@ -576,7 +576,7 @@
         <code class="n">__rebuild_method__</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code>
       <code class="k">end</code>
     <code class="k">end</code>
-    
+
     <code class="c1"># Example:</code>
     <code class="c1">#</code>
     <code class="c1">#   after :foo, :bar do</code>
@@ -633,7 +633,7 @@
         <code class="n">__rebuild_method__</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code>
       <code class="k">end</code>
     <code class="k">end</code>
-    
+
     <code class="c1"># Removes all advice from the named methods. Intended for testing.</code>
     <code class="c1">#</code>
     <code class="k">def</code> <code class="nf">reset_befores_and_afters</code><code class="p">(</code><code class="o">*</code><code class="n">method_symbols</code><code class="p">)</code>
@@ -643,7 +643,7 @@
         <code class="n">__rebuild_method__</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code>
       <code class="k">end</code>
     <code class="k">end</code>
-    
+
     <code class="c1"># Modified to re-apply advice when a method is overridden. So:</code>
     <code class="c1">#</code>
     <code class="c1">#   class Foo</code>
@@ -686,7 +686,7 @@
         <code class="k">end</code>
       <code class="k">end</code>
     <code class="k">end</code>
-    
+
     <code class="k">def</code> <code class="nf">__composed_methods__</code>
       <code class="n">ancestral_composer</code> <code class="o">=</code> <code class="nb">ancestors</code><code class="o">.</code><code class="n">detect</code> <code class="p">{</code> <code class="o">|</code><code class="n">ancestor</code><code class="o">|</code> <code class="n">ancestor</code><code class="o">.</code><code class="n">instance_</code><code class="p">\</code>
 <code class="n">variable_defined?</code><code class="p">(</code><code class="ss">:@__composed_methods__</code><code class="p">)</code> <code class="p">}</code>
@@ -698,7 +698,7 @@
 <code class="n">hod_sym</code><code class="p">),</code> <code class="o">[]</code><code class="p">)</code> <code class="p">}</code>
       <code class="k">end</code>
     <code class="k">end</code>
-    
+
     <code class="k">def</code> <code class="nf">__rebuild_without_advice__</code><code class="p">(</code><code class="n">method_sym</code><code class="p">,</code> <code class="n">old_method</code><code class="p">)</code>
       <code class="k">if</code> <code class="n">old_method</code><code class="o">.</code><code class="n">arity</code> <code class="o">==</code> <code class="mi">0</code>
         <code class="n">define_method</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code> <code class="p">{</code> <code class="n">old_method</code><code class="o">.</code><code class="n">bind</code><code class="p">(</code><code class="nb">self</code><code class="p">)</code><code class="o">.</code><code class="n">call</code> <code class="p">}</code>
@@ -707,7 +707,7 @@
 <code class="n">arams</code><code class="p">)</code> <code class="p">}</code>
       <code class="k">end</code>
     <code class="k">end</code>
-    
+
     <code class="k">def</code> <code class="nf">__rebuild_advising_no_parameters__</code><code class="p">(</code><code class="n">method_sym</code><code class="p">,</code> <code class="n">old_method</code><code class="p">,</code> <code class="n">befores</code><code class="p">,\</code>
  <code class="n">afters</code><code class="p">)</code>
       <code class="n">define_method</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code> <code class="k">do</code>
@@ -720,7 +720,7 @@
         <code class="k">end</code>
       <code class="k">end</code>
     <code class="k">end</code>
-    
+
     <code class="k">def</code> <code class="nf">__rebuild_advising_with_parameters__</code><code class="p">(</code><code class="n">method_sym</code><code class="p">,</code> <code class="n">old_method</code><code class="p">,</code> <code class="n">before</code><code class="p">\</code>
 <code class="n">s</code><code class="p">,</code> <code class="n">afters</code><code class="p">)</code>
       <code class="n">define_method</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code> <code class="k">do</code> <code class="o">|*</code><code class="n">params</code><code class="o">|</code>
@@ -745,7 +745,7 @@
         <code class="k">end</code>
       <code class="k">end</code>
     <code class="k">end</code>
-    
+
     <code class="k">def</code> <code class="nf">__rebuild_method__</code><code class="p">(</code><code class="n">method_sym</code><code class="p">)</code>
       <code class="n">__safely__</code> <code class="k">do</code>
         <code class="n">composition</code> <code class="o">=</code> <code class="n">__composed_methods__</code><code class="o">[</code><code class="n">method_sym</code><code class="o">]</code>
@@ -764,7 +764,7 @@
         <code class="k">end</code>
       <code class="k">end</code>
     <code class="k">end</code>
-    
+
     <code class="k">def</code> <code class="nf">__safely__</code>
       <code class="n">was</code> <code class="o">=</code> <code class="nb">instance_variable_get</code><code class="p">(</code><code class="s2">"@</code><code class="si">#{</code><code class="no">UNIQ</code><code class="si">}</code><code class="s2">_in_method_added"</code><code class="p">)</code>
       <code class="k">begin</code>
@@ -772,9 +772,9 @@
         <code class="k">yield</code>
       <code class="k">ensure</code>
         <code class="nb">instance_variable_set</code><code class="p">(</code><code class="s2">"@</code><code class="si">#{</code><code class="no">UNIQ</code><code class="si">}</code><code class="s2">_in_method_added"</code><code class="p">,</code> <code class="n">was</code><code class="p">)</code>
-      <code class="k">end</code> 
+      <code class="k">end</code>
     <code class="k">end</code>
-    
+
     <code class="k">def</code> <code class="nf">__unbound_method__</code><code class="p">(</code><code class="n">a_proc</code><code class="p">,</code> <code class="n">name_prefx</code> <code class="o">=</code> <code class="kp">nil</code><code class="p">)</code>
       <code class="k">begin</code>
         <code class="n">old_critical</code><code class="p">,</code> <code class="no">Thread</code><code class="o">.</code><code class="n">critical</code> <code class="o">=</code> <code class="no">Thread</code><code class="o">.</code><code class="n">critical</code><code class="p">,</code> <code class="kp">true</code>
@@ -792,9 +792,9 @@
 <code class="k">rescue</code> <code class="kp">nil</code>
       <code class="k">end</code>
     <code class="k">end</code>
-    
+
   <code class="k">end</code>
-  
+
   <code class="k">def</code> <code class="nc">self</code><code class="o">.</code><code class="nf">included</code><code class="p">(</code><code class="n">receiver</code><code class="p">)</code>
     <code class="n">receiver</code><code class="o">.</code><code class="n">extend</code>         <code class="no">ClassMethods</code>
     <code class="n">receiver</code><code class="o">.</code><code class="n">send</code> <code class="ss">:include</code><code class="p">,</code> <code class="no">MethodAdvice</code>
@@ -802,7 +802,7 @@
     <code class="n">receiver</code><code class="o">.</code><code class="n">instance_variable_set</code><code class="p">(</code><code class="ss">:@old_method_added</code><code class="p">,</code> <code class="n">receiver</code><code class="o">.</code><code class="n">public_meth</code><code class="p">\</code>
 <code class="n">od_defined?</code><code class="p">(</code><code class="ss">:method_added</code><code class="p">)</code> <code class="o">&amp;&amp;</code> <code class="n">receiver</code><code class="o">.</code><code class="n">instance_method</code><code class="p">(</code><code class="ss">:method_added</code><code class="p">))</code>
   <code class="k">end</code>
-  
+
 <code class="k">end</code>
 </pre></div>
 
