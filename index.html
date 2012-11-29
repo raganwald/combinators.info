@@ -2447,6 +2447,8 @@ end
 
 <p>We&rsquo;ve seen how recursive combinators like <code>#divide_and_conquer</code> and <code>#linear_recursion</code> are abstraction wins. They make recursive code much easier to read, because you know the general form of the algorithm and don&rsquo;t need to pick through it to discover the individual steps.</p>
 
+<iframe style="float:right;margin-left:20px;margin-bottom:20px;margin-top:0px" width="160" height="400" src="https://leanpub.com/b/coffee-kestrels-code/embed" frameborder="0" allowtransparency="true"></iframe>
+
 <p>We also saw that by separating the recursion implementation from the declaration of how to perform the steps of an algorithm like <code>#rotate</code>, we leave ourselves the opportunity to improve the performance of our implementation without the risk of adding bugs to our declaration. And today we&rsquo;re going to do just that, along with a few tweaks for usability.</p>
 
 <p>In this section, we&rsquo;re going to optimize our combinators&rsquo; performance and make them a little easier to use with goodies like <code>string_to_proc</code>. To do that, we&rsquo;re going to work with closures, defining methods with <code>define_method</code>, and implement functional programming&rsquo;s partial application. We&rsquo;ll wrap up by converting <code>linrec</code> from a recursive to an iterative implementation.</p>
@@ -3351,6 +3353,8 @@ To where it bent in the undergrowth SEMI-COMMA!!</p>
 <p>And be assured that months from now if I wanted to support rotating rectangular matrices of arbitrary size, I could modify <code>:cond</code>, <code>:before</code>, and <code>:after</code> with confidence that the basic method was not being broken.</p>
 
 <h3 section-num="9.2" id="the-message">The Message</h3>
+
+<iframe style="float:right;margin-left:20px;margin-bottom:20px;margin-top:20px" width="160" height="400" src="https://leanpub.com/b/think/embed" frameborder="0" allowtransparency="true"></iframe>
 
 <p>The message here is that taken by themselves, tools like recursive combinators or <code>String#to_proc</code> just look strange. But when we use them together, they reinforce each other and the sum becomes much greater than the sum of the parts. In the case of <code>String#to_proc</code>, it looks like frivolity to most Ruby programmers, because they don&rsquo;t use that many lambdas: Why should they when the existing syntax makes writing combinators hard to use? But when we have combinators in our hand, we see how <code>String#to_proc</code> can make them a win. So two things that look weird on their own are a useful tool when used in conjunction.</p>
 
